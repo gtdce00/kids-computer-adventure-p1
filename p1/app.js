@@ -254,6 +254,7 @@
     const stars = s ? Store.summary(s.student_id).stars : 0;
     return `
 <header class="topbar"><div class="wrap">
+  <a class="hub-link" href="../index.html" title="กลับไปห้องเกมการศึกษา (รวมเกมทุกชั้น)" aria-label="กลับไปห้องเกมการศึกษา">${A.ICON.left}<span>ห้องเกม</span></a>
   <a class="logo" href="#home" aria-label="KIDS COMPUTER ADVENTURE ป.1 หน้าแรก">${LAPTOP}<span class="txt"><span class="k">KIDS</span><span class="c">COMPUTER</span><span class="a">ADVENTURE ป.1</span></span></a>
   <nav class="nav" aria-label="เมนูหลัก"><ul>${NAV.map(([r, l, i]) => `<li><a href="#${r}" ${active === r ? 'aria-current="page"' : ''}>${A.ICON[i]}${l}</a></li>`).join('')}</ul></nav>
   <a class="who" href="#profile" title="โปรไฟล์นักเรียน" style="text-decoration:none;color:inherit">
