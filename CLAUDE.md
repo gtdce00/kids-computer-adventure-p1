@@ -12,15 +12,11 @@
 - ไม่มีเสียงพูด (ไม่ใช้ speechSynthesis) ใช้ได้เฉพาะเสียงประกอบ ถูก/ผิด/ชนะ คำสั่งเป็นตัวหนังสือ + ภาพช่วย
 - ทดสอบทุกครั้ง: เล่นจนจบแล้วตรวจว่า storage = 0 และไม่มี network request
 
-## กฎข้อ 1: แก้ไขเว็บทุกครั้ง ต้องสร้างและอัปโหลดขึ้น GitHub
-หลังแก้ไฟล์เว็บใด ๆ (index.html, fonts/, p1/ หรือโฟลเดอร์เกมอื่น) ให้ทำครบทุกขั้น:
+## กฎข้อ 1: แก้ไขเว็บทุกครั้ง ให้อัปเดตขึ้น GitHub อย่างเดียว
+ไอคอนบน Desktop ของครูเปิดลิงก์ GitHub Pages อยู่แล้ว จึงไม่ต้องสร้างไฟล์ใหม่ (ไม่ต้องรัน package.sh ไม่ต้องสร้าง zip/ตัวติดตั้งใหม่)
 1. ทดสอบเปิดเว็บ ต้องไม่มี error และกดไป-กลับระหว่างห้องเกมกับเกมได้ (เกมใน games/ ต้องผ่านกฎข้อ 2 ด้วย)
-2. รัน `bash tools/package.sh` ซึ่งจะ
-   - รวมเกม ป.1 เป็นไฟล์เดียว (`tools/build.py`: style.css + ฟอนต์ base64 + art.js → app.js → teacher.js → games.js → lessons/lesson*.js)
-   - สร้าง `download/GameRoom-Offline.zip` (ห้องเกม + p1 + games/ + INSTALL-Desktop-Icon.vbs)
-   - สร้างโปรแกรมติดตั้ง `GameRoom-Setup.exe` ด้วย makensis แล้วใส่ใน `download/GameRoom-Setup.zip` (ไฟล์ .exe ดาวน์โหลดตรง ๆ ไม่ได้)
-   - ไอคอนบน Desktop ของตัวติดตั้งเปิดเว็บออนไลน์ (SITEURL) ไม่ต้องให้ครูติดตั้งซ้ำเมื่อเพิ่มเกม · ไอคอนออฟไลน์อยู่ในเมนู Start
-   - เมื่อมีการเปลี่ยนแปลงสำคัญ ให้เพิ่ม VERSION ใน `installer/installer.nsi`
-3. commit แล้ว push ขึ้น `main` ของ gtdce00/kids-computer-adventure-p1 (GitHub Pages จะอัปเดตเว็บตามเอง)
+2. commit แล้ว push ขึ้น `main` ของ gtdce00/kids-computer-adventure-p1 (GitHub Pages จะอัปเดตเว็บตามเอง)
+
+สร้างไฟล์ดาวน์โหลดใหม่ (`bash tools/package.sh` → `download/GameRoom-Setup.zip`, `download/GameRoom-Offline.zip`) เฉพาะเมื่อครูสั่งเท่านั้น
 
 ถ้ามีบทเรียนใหม่ของ ป.1 ให้เพิ่ม `<script src="lessons/lessonXX.js">` ใน `p1/index.html` (build.py รวม lessons/lesson*.js ให้อัตโนมัติ)
