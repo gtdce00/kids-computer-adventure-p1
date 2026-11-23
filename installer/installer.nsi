@@ -8,7 +8,8 @@ Unicode true
 !define APPNAME   "ห้องเกมการศึกษา ครูคอม"
 !define OLDNAME   "KIDS COMPUTER ADVENTURE ป.1"
 !define APPID     "KidsComputerAdventureP1"
-!define VERSION   "2.0.0"
+!define VERSION   "2.1.0"
+!define SITEURL   "https://gtdce00.github.io/kids-computer-adventure-p1/"
 !define PUBLISHER "ครูชลหิรัณย์ พลศักดิ์ โรงเรียนบ้านนาอ่าง"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPID}"
 
@@ -29,9 +30,9 @@ VIAddVersionKey "LegalCopyright" "${PUBLISHER}"
 !define MUI_UNICON "icon.ico"
 !define MUI_ABORTWARNING
 !define MUI_WELCOMEPAGE_TITLE "ติดตั้ง ${APPNAME}"
-!define MUI_WELCOMEPAGE_TEXT "รวมเกมการเรียนรู้ทุกชั้น ป.1–ม.3 โรงเรียนบ้านนาอ่าง$\r$\n$\r$\nโปรแกรมนี้จะติดตั้งห้องเกมลงในเครื่อง และสร้างไอคอนบนหน้าจอ Desktop ให้กดเข้าเล่นได้ทันที$\r$\n$\r$\n• เกม ป.1 เล่นได้โดยไม่ต้องต่ออินเทอร์เน็ต$\r$\n• ไม่ต้องใช้สิทธิ์ผู้ดูแลระบบ (Admin)$\r$\n$\r$\nกด ถัดไป เพื่อเริ่มติดตั้ง"
+!define MUI_WELCOMEPAGE_TEXT "รวมเกมการเรียนรู้ทุกชั้น ป.1–ม.3 โรงเรียนบ้านนาอ่าง$\r$\n$\r$\nโปรแกรมนี้จะสร้างไอคอนบนหน้าจอ Desktop เปิดห้องเกมออนไลน์ เห็นเกมใหม่ได้ทันทีโดยไม่ต้องติดตั้งซ้ำ$\r$\n$\r$\n• ต้องต่ออินเทอร์เน็ต (ถ้าเน็ตหลุด ใช้ $\"ห้องเกม (ออฟไลน์)$\" ในเมนู Start)$\r$\n• ไม่ต้องใช้สิทธิ์ผู้ดูแลระบบ (Admin)$\r$\n$\r$\nกด ถัดไป เพื่อเริ่มติดตั้ง"
 !define MUI_FINISHPAGE_TITLE "ติดตั้งเรียบร้อยแล้ว"
-!define MUI_FINISHPAGE_TEXT "ไอคอน ${APPNAME} อยู่บนหน้าจอ Desktop แล้ว$\r$\nกดไอคอนครั้งเดียวเพื่อเข้าเล่นได้เลย"
+!define MUI_FINISHPAGE_TEXT "ไอคอน ${APPNAME} อยู่บนหน้าจอ Desktop แล้ว$\r$\nกดไอคอนครั้งเดียวเพื่อเข้าห้องเกมออนไลน์ เกมใหม่จะขึ้นให้เอง ไม่ต้องติดตั้งซ้ำ"
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_TEXT "เปิดเกมเลย"
 !define MUI_FINISHPAGE_RUN_FUNCTION LaunchApp
@@ -60,10 +61,18 @@ Function FindEdge
   done:
 FunctionEnd
 
-; สร้างไอคอน: เปิดด้วย Edge แบบหน้าต่างโปรแกรม (ไม่มีแถบที่อยู่เว็บ) เต็มจอ
+; ไอคอนหลัก: เปิดห้องเกมออนไลน์ด้วย Edge แบบหน้าต่างโปรแกรม (ไม่มีแถบที่อยู่เว็บ) เต็มจอ
 !macro MakeShortcut LNK
   StrCmp $EDGE "" +3
-    CreateShortcut "${LNK}" "$EDGE" '--app="file:///$INSTDIR\index.html" --start-maximized' "$INSTDIR\icon.ico" 0 SW_SHOWMAXIMIZED "" "ห้องเกมการศึกษา ครูคอม รวมเกมทุกชั้น"
+    CreateShortcut "${LNK}" "$EDGE" '--app="${SITEURL}" --start-maximized' "$INSTDIR\icon.ico" 0 SW_SHOWMAXIMIZED "" "ห้องเกมการศึกษา ครูคอม (ออนไลน์)"
+    Goto +2
+    CreateShortcut "${LNK}" "$WINDIR\explorer.exe" '"${SITEURL}"' "$INSTDIR\icon.ico" 0
+!macroend
+
+; ไอคอนสำรอง: เปิดไฟล์ในเครื่อง ใช้ตอนไม่มีอินเทอร์เน็ต
+!macro MakeOfflineShortcut LNK
+  StrCmp $EDGE "" +3
+    CreateShortcut "${LNK}" "$EDGE" '--app="file:///$INSTDIR\index.html" --start-maximized' "$INSTDIR\icon.ico" 0 SW_SHOWMAXIMIZED "" "ห้องเกมการศึกษา ครูคอม (ออฟไลน์)"
     Goto +2
     CreateShortcut "${LNK}" "$INSTDIR\index.html" "" "$INSTDIR\icon.ico" 0
 !macroend
@@ -84,6 +93,7 @@ Section "Install"
   !insertmacro MakeShortcut "$DESKTOP\${APPNAME}.lnk"
   CreateDirectory "$SMPROGRAMS\${APPNAME}"
   !insertmacro MakeShortcut "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk"
+  !insertmacro MakeOfflineShortcut "$SMPROGRAMS\${APPNAME}\ห้องเกม (ออฟไลน์).lnk"
   CreateShortcut "$SMPROGRAMS\${APPNAME}\ถอนการติดตั้ง.lnk" "$INSTDIR\Uninstall.exe"
   ; แสดงใน แอป > แอปที่ติดตั้ง (ถอนการติดตั้งได้)
   WriteRegStr HKCU "${UNINSTKEY}" "DisplayName" "${APPNAME}"

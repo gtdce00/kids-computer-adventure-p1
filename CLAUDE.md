@@ -10,6 +10,7 @@
    - รวมเกม ป.1 เป็นไฟล์เดียว (`tools/build.py`: style.css + ฟอนต์ base64 + art.js → app.js → teacher.js → games.js → lessons/lesson*.js)
    - สร้าง `download/GameRoom-Offline.zip` (ห้องเกม + เกม + INSTALL-Desktop-Icon.vbs)
    - สร้างโปรแกรมติดตั้ง `GameRoom-Setup.exe` ด้วย makensis แล้วใส่ใน `download/GameRoom-Setup.zip` (ไฟล์ .exe ดาวน์โหลดตรง ๆ ไม่ได้)
+   - ไอคอนบน Desktop ของตัวติดตั้งเปิดเว็บออนไลน์ (SITEURL) ไม่ต้องให้ครูติดตั้งซ้ำเมื่อเพิ่มเกม · ไอคอนออฟไลน์อยู่ในเมนู Start
    - เมื่อมีการเปลี่ยนแปลงสำคัญ ให้เพิ่ม VERSION ใน `installer/installer.nsi`
 3. commit แล้ว push ขึ้น `main` ของ gtdce00/kids-computer-adventure-p1 (GitHub Pages จะอัปเดตเว็บตามเอง)
 
