@@ -22,6 +22,7 @@ https://gtdce00.github.io/kids-computer-adventure-p1/ — หน้าห้อ�
 |---|---|---|
 | KIDS COMPUTER ADVENTURE ป.1 | ป.1 | `p1/` (ในเว็บนี้) |
 | ฝึกเมาส์ เก็บผลไม้ใส่ตะกร้า | ป.1 | `games/p1-mouse/` |
+| ฝึกวาดภาพ | ป.1–ป.2 | `games/p12-paint/` |
 | อุปกรณ์ดิจิทัลรอบตัว | ป.2 | `games/p2-digital/` |
 | หุ่นยนต์เดินตามลูกศร | ป.2 | `games/p2-arrows/` |
 | เรียงลำดับขั้นตอน | ป.3 | `games/p3-steps/` |

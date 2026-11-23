@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ฝึกวาดภาพ</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .studio{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:start}
+  @media (max-width:760px){.studio{grid-template-columns:1fr}}
+  .tools{display:grid;grid-template-columns:repeat(2,74px);gap:8px;align-content:start}
+  @media (max-width:760px){.tools{grid-template-columns:repeat(auto-fill,minmax(70px,1fr))}}
+  .tool{height:74px;border-radius:16px;background:#fff;border:var(--b);box-shadow:3px 3px 0 var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px}
+  .tool .ti{font-size:30px;line-height:1}
+  .tool .tn{font-size:13px;line-height:1.1}
+  .tool.on{background:var(--sun);transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .tool.act{background:#F1F4FF}
+  .tool.glow{outline:4px solid var(--grape);outline-offset:2px;animation:pop .8s infinite}
+  .tool.no{animation:shake .4s;background:var(--no-soft)}
+  .tool:disabled{opacity:.3;cursor:not-allowed}
+  .canvas-wrap{position:relative;width:100%;aspect-ratio:8/5;border:var(--b);border-radius:18px;overflow:hidden;background:#fff;box-shadow:var(--pop);touch-action:none;cursor:crosshair}
+  .canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%}
+  .canvas-wrap canvas.top{pointer-events:none}
+  .palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+  .sw{width:46px;height:46px;border-radius:50%;border:3px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
+  .sw.on{transform:scale(1.18);outline:4px solid var(--grape);outline-offset:2px}
+  .now{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:15px;color:var(--ink2)}
+  .now i{width:26px;height:26px;border-radius:50%;border:2px solid var(--ink);display:inline-block}
+  .tasks{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+  .tasks li{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:#fff;border:2px solid var(--line);font-size:16px}
+  .tasks li .dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--ink)}
+  .tasks li.done{border-color:var(--ok);background:var(--ok-soft)}
+  .tasks li.done::after{content:'✓';font:700 18px/1 'Mali';color:var(--ok)}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.1–ป.2 คอมพิวเตอร์ · หน่วยที่ 3 สร้างภาพด้วยคอมพิวเตอร์
+   (รู้จักโปรแกรมวาดภาพ · วาดเส้นและรูปทรง · ระบายสีและสร้างภาพ)
+   ไม่ถามชื่อ ไม่เก็บข้อมูล ไม่บันทึกภาพ ไม่มีเสียงพูด */
+(function () {
+  const { $, $$, esc } = KIT;
+  const W = 800, H = 500;
+  const TOOLS = {
+    pencil: { icon: '✏️', name: 'ดินสอ' }, brush: { icon: '🖌️', name: 'พู่กัน' }, fill: { icon: '🪣', name: 'ถังสี' }, eraser: { icon: '🧽', name: 'ยางลบ' },
+    line: { icon: '📏', name: 'เส้นตรง' }, rect: { icon: '⬜', name: 'สี่เหลี่ยม' }, circle: { icon: '⚪', name: 'วงกลม' }, tri: { icon: '🔺', name: 'สามเหลี่ยม' },
+    undo: { icon: '↶', name: 'ย้อนกลับ' }, clear: { icon: '🗑️', name: 'ล้างภาพ' },
+  };
+  const COLORS = [['#E53935', 'แดง'], ['#FB8C00', 'ส้ม'], ['#FDD835', 'เหลือง'], ['#43A047', 'เขียว'], ['#1E88E5', 'ฟ้า'], ['#8E24AA', 'ม่วง'], ['#F06292', 'ชมพู'], ['#8D5524', 'น้ำตาล'], ['#212121', 'ดำ']];
+  const hex2rgb = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+
+  /* ---------- กระดานวาดภาพ (ใช้ทุกด่าน) ---------- */
+  function Paint(host, o) {
+    const tools = o.tools || Object.keys(TOOLS);
+    host.innerHTML = `<div class="studio">
+      <div class="tools">${tools.map((t) => `<button class="tool ${t === 'undo' || t === 'clear' ? 'act' : ''}" data-t="${t}" aria-label="${TOOLS[t].name}"><span class="ti">${TOOLS[t].icon}</span><span class="tn">${TOOLS[t].name}</span></button>`).join('')}</div>
+      <div><div class="canvas-wrap" id="cw"><canvas class="bg" width="${W}" height="${H}"></canvas><canvas class="draw" width="${W}" height="${H}"></canvas><canvas class="top" width="${W}" height="${H}"></canvas></div>
+        ${o.palette === false ? '' : `<div class="palette">${COLORS.map(([c, n]) => `<button class="sw" data-c="${c}" style="background:${c}" aria-label="สี${n}" title="${n}"></button>`).join('')}<span class="now">สีที่เลือก <i id="nowc"></i></span></div>`}
+      </div></div>`;
+    const wrap = $('#cw', host), [bg, draw, top] = $$('canvas', wrap);
+    const bx = bg.getContext('2d'), dx = draw.getContext('2d', { willReadFrequently: true }), tx = top.getContext('2d', { willReadFrequently: true });
+    bx.fillStyle = '#fff'; bx.fillRect(0, 0, W, H);
+    const st = { tool: o.tool || tools[0], color: o.color || '#E53935', undo: [], shapes: new Set(), fills: new Set(), strokes: 0, locked: !!o.locked };
+    const api = { bx, dx, tx, st, wrap };
+    const pushUndo = () => { st.undo.push(dx.getImageData(0, 0, W, H)); if (st.undo.length > 25) st.undo.shift(); };
+    const drawShape = (t, a, b) => {
+      dx.save(); dx.globalCompositeOperation = 'source-over'; dx.strokeStyle = st.color; dx.lineWidth = 7; dx.lineJoin = 'round'; dx.lineCap = 'round'; dx.beginPath();
+      if (t === 'line') { dx.moveTo(a.x, a.y); dx.lineTo(b.x, b.y); }
+      if (t === 'rect') dx.rect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+      if (t === 'circle') dx.ellipse((a.x + b.x) / 2, (a.y + b.y) / 2, Math.abs(b.x - a.x) / 2, Math.abs(b.y - a.y) / 2, 0, 0, Math.PI * 2);
+      if (t === 'tri') { dx.moveTo((a.x + b.x) / 2, Math.min(a.y, b.y)); dx.lineTo(Math.max(a.x, b.x), Math.max(a.y, b.y)); dx.lineTo(Math.min(a.x, b.x), Math.max(a.y, b.y)); dx.closePath(); }
+      dx.stroke(); dx.restore();
+    };
+    function flood(px, py, hex) {
+      const img = dx.getImageData(0, 0, W, H), d = img.data;
+      const m = tx.getImageData(0, 0, W, H).data;
+      const i0 = (py * W + px) * 4;
+      if (m[i0 + 3] > 80) return false;
+      const s = [d[i0], d[i0 + 1], d[i0 + 2], d[i0 + 3]], [r, g, b] = hex2rgb(hex);
+      if (s[3] === 255 && Math.abs(s[0] - r) + Math.abs(s[1] - g) + Math.abs(s[2] - b) < 6) return false;
+      const ok = (p) => { const i = p * 4; return m[i + 3] <= 80 && Math.abs(d[i] - s[0]) + Math.abs(d[i + 1] - s[1]) + Math.abs(d[i + 2] - s[2]) + Math.abs(d[i + 3] - s[3]) < 120; };
+      const seen = new Uint8Array(W * H), stack = [[px, py]];
+      while (stack.length) {
+        let [x, y] = stack.pop(); let p = y * W + x;
+        if (seen[p] || !ok(p)) continue;
+        while (x > 0 && !seen[p - 1] && ok(p - 1)) { x--; p--; }
+        let up = false, dn = false;
+        while (x < W && !seen[p] && ok(p)) {
+          seen[p] = 1; const i = p * 4; d[i] = r; d[i + 1] = g; d[i + 2] = b; d[i + 3] = 255;
+          if (y > 0) { const q = p - W; if (!seen[q] && ok(q)) { if (!up) { stack.push([x, y - 1]); up = true; } } else up = false; }
+          if (y < H - 1) { const q = p + W; if (!seen[q] && ok(q)) { if (!dn) { stack.push([x, y + 1]); dn = true; } } else dn = false; }
+          x++; p++;
+        }
+      }
+      dx.putImageData(img, 0, 0); return true;
+    }
+    const pos = (e) => { const r = wrap.getBoundingClientRect(); return { x: Math.max(0, Math.min(W - 1, Math.round((e.clientX - r.left) * W / r.width))), y: Math.max(0, Math.min(H - 1, Math.round((e.clientY - r.top) * H / r.height))) }; };
+    let down = null, snap = null, last = null;
+    wrap.addEventListener('pointerdown', (e) => {
+      if (st.locked) return;
+      e.preventDefault(); wrap.setPointerCapture && wrap.setPointerCapture(e.pointerId);
+      const p = pos(e), t = st.tool;
+      if (t === 'fill') { pushUndo(); if (flood(p.x, p.y, st.color)) { st.fills.add(st.color); KIT.sfx.tap(); o.onFill && o.onFill(p, st.color); } else st.undo.pop(); return; }
+      if (!['pencil', 'brush', 'eraser', 'line', 'rect', 'circle', 'tri'].includes(t)) return;
+      pushUndo(); down = p; last = p;
+      if (['line', 'rect', 'circle', 'tri'].includes(t)) snap = dx.getImageData(0, 0, W, H);
+      else { dx.save(); dx.globalCompositeOperation = t === 'eraser' ? 'destination-out' : 'source-over'; dx.fillStyle = st.color; dx.beginPath(); dx.arc(p.x, p.y, (t === 'pencil' ? 5 : t === 'brush' ? 16 : 28) / 2, 0, Math.PI * 2); dx.fill(); dx.restore(); }
+    });
+    wrap.addEventListener('pointermove', (e) => {
+      if (!down) return;
+      const p = pos(e), t = st.tool;
+      if (snap) { dx.putImageData(snap, 0, 0); drawShape(t, down, p); return; }
+      dx.save(); dx.globalCompositeOperation = t === 'eraser' ? 'destination-out' : 'source-over';
+      dx.strokeStyle = st.color; dx.lineCap = 'round'; dx.lineJoin = 'round'; dx.lineWidth = t === 'pencil' ? 5 : t === 'brush' ? 16 : 28;
+      dx.beginPath(); dx.moveTo(last.x, last.y); dx.lineTo(p.x, p.y); dx.stroke(); dx.restore(); last = p;
+    });
+    const up = (e) => {
+      if (!down) return;
+      const t = st.tool;
+      if (snap) { const p = pos(e); dx.putImageData(snap, 0, 0); if (Math.abs(p.x - down.x) + Math.abs(p.y - down.y) > 12) { drawShape(t, down, p); st.shapes.add(t); } else st.undo.pop(); snap = null; }
+      else if (t !== 'eraser') st.strokes++;
+      down = null; o.onChange && o.onChange();
+    };
+    wrap.addEventListener('pointerup', up); wrap.addEventListener('pointercancel', up);
+    const setTool = (t) => { st.tool = t; $$('.tool', host).forEach((b) => b.classList.toggle('on', b.dataset.t === t)); };
+    const setColor = (c) => { st.color = c; $$('.sw', host).forEach((b) => b.classList.toggle('on', b.dataset.c === c)); const n = $('#nowc', host); if (n) n.style.background = c; };
+    $$('.tool', host).forEach((b) => (b.onclick = () => {
+      const t = b.dataset.t;
+      if (o.onToolTap && o.onToolTap(t, b) === false) return;
+      KIT.sfx.tap();
+      if (t === 'undo') { const u = st.undo.pop(); if (u) { dx.putImageData(u, 0, 0); o.onChange && o.onChange(); } return; }
+      if (t === 'clear') { pushUndo(); dx.clearRect(0, 0, W, H); o.onChange && o.onChange(); return; }
+      setTool(t);
+    }));
+    $$('.sw', host).forEach((b) => (b.onclick = () => { KIT.sfx.tap(); setColor(b.dataset.c); o.onColor && o.onColor(b.dataset.c); }));
+    setTool(st.tool); setColor(st.color);
+    Object.assign(api, { setTool, setColor, lock: (v) => { st.locked = v; }, pixel: (x, y) => { const d = dx.getImageData(x, y, 1, 1).data; return [d[0], d[1], d[2], d[3]]; } });
+    return api;
+  }
+
+  let correct = 0, total = 0, review = [];
+
+  /* ---------- ด่าน 1: รู้จักเครื่องมือ ---------- */
+  const Q1 = [
+    { ask: 'เครื่องมือไหนใช้ <b>วาดเส้นเล็ก ๆ</b>?', t: 'pencil', tip: 'ดินสอ ✏️ ใช้วาดเส้นเล็ก ๆ' },
+    { ask: 'เครื่องมือไหนใช้ <b>เทสีให้เต็มพื้นที่</b>?', t: 'fill', tip: 'ถังสี 🪣 แตะในพื้นที่ปิด สีจะเต็มทั้งช่อง' },
+    { ask: 'เครื่องมือไหนใช้ <b>ลบภาพ</b>?', t: 'eraser', tip: 'ยางลบ 🧽 ใช้ลบส่วนที่ไม่ต้องการ' },
+    { ask: 'เครื่องมือไหนใช้ <b>วาดวงกลม</b>?', t: 'circle', tip: 'กดค้างแล้วลาก จะได้วงกลม ⚪' },
+    { ask: 'ถ้าวาดผิด ต้องการ <b>ย้อนกลับ 1 ขั้น</b> ใช้ปุ่มไหน?', t: 'undo', tip: 'ปุ่มย้อนกลับ ↶ ยกเลิกสิ่งที่ทำล่าสุด' },
+    { ask: 'เครื่องมือไหนใช้วาด <b>เส้นหนา ๆ</b> เหมือนระบายสีน้ำ?', t: 'brush', tip: 'พู่กัน 🖌️ เส้นหนากว่าดินสอ' },
+  ];
+  function level1(st) {
+    let i = 0; const res = [];
+    st.innerHTML = `<section class="card"><p class="qtag">ด่าน 1 / 4 · รู้จักเครื่องมือวาดภาพ</p><div id="dots"></div><div class="prompt" id="ask"></div><div id="pt"></div><div class="fbhost"></div></section>`;
+    let wrong = 0, busy = false;
+    const paint = Paint($('#pt', st), {
+      tool: 'pencil',
+      onToolTap: (t, b) => {
+        if (busy || i >= Q1.length) return true;
+        const q = Q1[i]; $('.fbhost', st).innerHTML = '';
+        if (t === q.t) {
+          busy = true; res[i] = wrong === 0; if (wrong === 0) KIT.addScore(10);
+          $$('.tool', st).forEach((x) => x.classList.remove('glow'));
+          KIT.feedback($('.fbhost', st), true, 'ใช่แล้ว! ' + TOOLS[t].name, q.tip, i + 1 < Q1.length ? 'ข้อต่อไป →' : 'ไปด่าน 2 →', () => { i++; busy = false; if (i < Q1.length) show(); else { const c = res.filter(Boolean).length; correct += c; total += Q1.length; review.push({ ok: c === Q1.length, text: `ด่าน 1 รู้จักเครื่องมือ ${c}/${Q1.length}` }); level2(st); } });
+          return true;
+        }
+        wrong++; b.classList.add('no'); setTimeout(() => b.classList.remove('no'), 400);
+        if (wrong >= 2) $(`.tool[data-t="${q.t}"]`, st).classList.add('glow');
+        KIT.feedback($('.fbhost', st), false, 'นั่นคือ ' + TOOLS[t].name, wrong >= 2 ? 'ดูปุ่มที่กระพริบสีม่วงนะ' : 'ลองอ่านชื่อใต้ไอคอนอีกครั้ง');
+        return false;
+      },
+    });
+    const show = () => { wrong = 0; $('#dots', st).innerHTML = KIT.dots(Q1.length, i, res); $('#ask', st).innerHTML = Q1[i].ask + '<br><span style="font-size:16px;color:var(--ink2)">แตะปุ่มเครื่องมือด้านซ้าย (ลองวาดบนกระดานได้ด้วย)</span>'; };
+    show();
+  }
+
+  /* ---------- ด่าน 2: ลากเส้นตามรอยประ ---------- */
+  const seg = (pts, step) => { const out = []; for (let k = 0; k < pts.length - 1; k++) { const [a, b] = [pts[k], pts[k + 1]]; const n = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / step)); for (let j = 0; j < n; j++) out.push([a[0] + (b[0] - a[0]) * j / n, a[1] + (b[1] - a[1]) * j / n]); } out.push(pts[pts.length - 1]); return out; };
+  const GUIDES = [
+    { name: 'เส้นตรง', pts: () => seg([[150, 250], [650, 250]], 8), poly: [[150, 250], [650, 250]] },
+    { name: 'วงกลม', pts: () => Array.from({ length: 120 }, (_, k) => [400 + 165 * Math.cos(k * Math.PI / 60), 250 + 165 * Math.sin(k * Math.PI / 60)]), circle: true },
+    { name: 'สามเหลี่ยม', pts: () => seg([[400, 75], [625, 425], [175, 425], [400, 75]], 8), poly: [[400, 75], [625, 425], [175, 425], [400, 75]] },
+    { name: 'สี่เหลี่ยม', pts: () => seg([[210, 95], [590, 95], [590, 405], [210, 405], [210, 95]], 8), poly: [[210, 95], [590, 95], [590, 405], [210, 405], [210, 95]] },
+  ];
+  function level2(st) {
+    let g = 0; const res = [];
+    function shape() {
+      const G = GUIDES[g], P = G.pts(); let tries = 0;
+      st.innerHTML = `<section class="card"><p class="qtag">ด่าน 2 / 4 · ลากเส้นตามรอยประ</p>${KIT.dots(GUIDES.length, g, res)}
+        <div class="prompt">ใช้ <b>พู่กัน</b> ลากเส้นทับรอยประให้เป็น <b>${G.name}</b> เริ่มที่จุดสีเขียว 🟢</div><div id="pt"></div>
+        <div class="row mt"><button class="btn white" id="again">↻ วาดใหม่</button><button class="btn ok" id="done">✓ เสร็จแล้ว</button></div><div class="fbhost"></div></section>`;
+      const paint = Paint($('#pt', st), { tools: ['brush', 'pencil', 'eraser', 'undo', 'clear'], tool: 'brush', color: '#1E88E5' });
+      const b = paint.bx; b.save(); b.strokeStyle = '#B8C2DA'; b.lineWidth = 8; b.setLineDash([3, 16]); b.lineCap = 'round'; b.beginPath();
+      if (G.circle) b.arc(400, 250, 165, 0, Math.PI * 2); else G.poly.forEach(([x, y], k) => (k ? b.lineTo(x, y) : b.moveTo(x, y)));
+      b.stroke(); b.restore(); b.fillStyle = '#2FBF71'; b.beginPath(); b.arc(P[0][0], P[0][1], 13, 0, Math.PI * 2); b.fill();
+      $('#again', st).onclick = () => { paint.dx.clearRect(0, 0, W, H); $('.fbhost', st).innerHTML = ''; };
+      $('#done', st).onclick = () => {
+        tries++; $('.fbhost', st).innerHTML = '';
+        const d = paint.dx.getImageData(0, 0, W, H).data, a = (x, y) => d[((y | 0) * W + (x | 0)) * 4 + 3];
+        let hit = 0;
+        P.forEach(([x, y]) => { let f = false; for (let yy = -16; yy <= 16 && !f; yy += 2) for (let xx = -16; xx <= 16; xx += 2) { const X = x + xx, Y = y + yy; if (X >= 0 && X < W && Y >= 0 && Y < H && a(X, Y) > 40) { f = true; break; } } if (f) hit++; });
+        let ink = 0, off = 0;
+        for (let y = 0; y < H; y += 6) for (let x = 0; x < W; x += 6) if (a(x, y) > 40) { ink++; let m = 1e9; for (const [px, py] of P) { const dd = (px - x) ** 2 + (py - y) ** 2; if (dd < m) m = dd; } if (m > 34 * 34) off++; }
+        const cov = hit / P.length, stray = ink ? off / ink : 0;
+        if (cov >= 0.8 && stray <= 0.3) {
+          res[g] = tries === 1; if (tries === 1) KIT.addScore(10); paint.lock(true);
+          KIT.feedback($('.fbhost', st), true, `วาด${G.name}ได้สวยมาก!`, `ทับรอยประได้ ${Math.round(cov * 100)}%`, g + 1 < GUIDES.length ? 'รูปต่อไป →' : 'ไปด่าน 3 →', () => { g++; if (g < GUIDES.length) shape(); else { const c = res.filter(Boolean).length; correct += c; total += GUIDES.length; review.push({ ok: c === GUIDES.length, text: `ด่าน 2 ลากเส้นตามรอย ${c}/${GUIDES.length}` }); level3(st); } });
+        } else if (cov < 0.8) KIT.feedback($('.fbhost', st), false, `ทับรอยประได้ ${Math.round(cov * 100)}%`, 'ลากให้ครบรอบทั้งเส้นนะ (ต้องได้ 80% ขึ้นไป)');
+        else KIT.feedback($('.fbhost', st), false, 'มีเส้นออกนอกรอยประเยอะไป', 'ลองกด วาดใหม่ แล้วลากช้า ๆ ให้อยู่บนรอยประ');
+      };
+    }
+    shape();
+  }
+
+  /* ---------- ด่าน 3: ระบายสีบ้าน ---------- */
+  const TASKS = [
+    { name: 'หลังคา', at: [400, 190], color: '#E53935', cname: 'แดง' },
+    { name: 'ประตู', at: [400, 385], color: '#8D5524', cname: 'น้ำตาล' },
+    { name: 'หน้าต่าง', at: [310, 300], color: '#1E88E5', cname: 'ฟ้า' },
+    { name: 'ดวงอาทิตย์', at: [680, 100], color: '#FDD835', cname: 'เหลือง' },
+  ];
+  function level3(st) {
+    let wrongFills = 0;
+    st.innerHTML = `<section class="card"><p class="qtag">ด่าน 3 / 4 · ระบายสีด้วยถังสี</p>
+      <div class="prompt">เลือก <b>สี</b> แล้วใช้ <b>ถังสี 🪣</b> แตะในช่องที่ต้องการระบาย</div>
+      <ul class="tasks" id="tasks">${TASKS.map((t, k) => `<li data-k="${k}"><span class="dot" style="background:${t.color}"></span>${t.name} สี${t.cname}</li>`).join('')}</ul>
+      <div id="pt" class="mt-s"></div><div class="fbhost"></div></section>`;
+    const near = (p, hex) => { const [r, g, b] = hex2rgb(hex); return p[3] > 200 && Math.abs(p[0] - r) + Math.abs(p[1] - g) + Math.abs(p[2] - b) < 40; };
+    const paint = Paint($('#pt', st), {
+      tools: ['fill', 'brush', 'undo'], tool: 'fill', color: '#E53935',
+      onFill: () => {
+        $('.fbhost', st).innerHTML = '';
+        // ดูเฉพาะช่องที่เพิ่งเปลี่ยนสี
+        const now = TASKS.map((t) => paint.pixel(...t.at));
+        const hitTask = TASKS.find((t, k) => now[k].join() !== prev[k].join() && !near(now[k], t.color));
+        prev = now;
+        if (hitTask) { wrongFills++; KIT.feedback($('.fbhost', st), false, `${hitTask.name}ต้องเป็นสี${hitTask.cname}นะ`, 'เลือกสีใหม่ แล้วแตะถังสีลงในช่องนั้นอีกครั้ง หรือกดย้อนกลับ ↶'); }
+        check();
+      },
+      onChange: () => { prev = TASKS.map((t) => paint.pixel(...t.at)); check(); },
+    });
+    let prev = TASKS.map((t) => paint.pixel(...t.at));
+    // เส้นขอบภาพ (อยู่ชั้นบนสุด ลบไม่ได้)
+    const o = paint.tx; o.strokeStyle = '#212121'; o.lineWidth = 6; o.lineJoin = 'round'; o.lineCap = 'round';
+    o.beginPath(); o.moveTo(20, 430); o.lineTo(780, 430); o.stroke();
+    o.strokeRect(250, 230, 300, 200);
+    o.beginPath(); o.moveTo(230, 230); o.lineTo(400, 110); o.lineTo(570, 230); o.closePath(); o.stroke();
+    o.strokeRect(370, 335, 60, 95); o.strokeRect(280, 270, 60, 60); o.strokeRect(460, 270, 60, 60);
+    o.beginPath(); o.arc(680, 100, 50, 0, Math.PI * 2); o.stroke();
+    let finished = false;
+    function check() {
+      let n = 0;
+      TASKS.forEach((t, k) => { const ok = near(paint.pixel(...t.at), t.color); $(`#tasks li[data-k="${k}"]`).classList.toggle('done', ok); if (ok) n++; });
+      if (n === TASKS.length && !finished) {
+        finished = true; paint.lock(true);
+        const c = Math.max(0, TASKS.length - wrongFills); correct += c; total += TASKS.length; KIT.addScore(c * 10);
+        review.push({ ok: wrongFills === 0, text: `ด่าน 3 ระบายสีบ้าน ${wrongFills === 0 ? 'ถูกทุกช่องตั้งแต่ครั้งแรก' : 'ระบายผิด ' + wrongFills + ' ครั้งแล้วแก้ไข'}` });
+        $('.fbhost', st).innerHTML = '';
+        KIT.feedback($('.fbhost', st), true, 'ระบายสีครบทุกช่องแล้ว!', 'ถังสีจะเทสีเต็มเฉพาะพื้นที่ที่มีเส้นล้อมรอบ', 'ไปด่าน 4 →', () => level4(st));
+      }
+    }
+  }
+
+  /* ---------- ด่าน 4: วาดภาพอิสระด้วยรูปทรง ---------- */
+  function level4(st) {
+    st.innerHTML = `<section class="card"><p class="qtag">ด่าน 4 / 4 · สร้างภาพของฉัน</p>
+      <div class="prompt">วาดภาพอะไรก็ได้ เช่น บ้าน รถ หน้าคน ต้นไม้ 🏠🚗😊🌳<br><span style="font-size:17px">ทำภารกิจให้ครบ 3 ข้อ แล้วกดเสร็จแล้ว</span></div>
+      <ul class="tasks" id="tasks"><li data-k="s">ใช้รูปทรง (สี่เหลี่ยม วงกลม สามเหลี่ยม เส้นตรง) อย่างน้อย 2 แบบ</li><li data-k="f">ระบายด้วยถังสีอย่างน้อย 2 สี</li><li data-k="d">วาดเส้นด้วยดินสอหรือพู่กัน</li></ul>
+      <div id="pt" class="mt-s"></div>
+      <div class="row mt"><button class="btn ok" id="done" disabled>✓ เสร็จแล้ว</button></div>
+      <p class="privacy center">ภาพไม่ถูกบันทึกเก็บไว้ ถ้าอยากเก็บ ให้ครูช่วยถ่ายรูปหน้าจอ</p><div class="fbhost"></div></section>`;
+    const paint = Paint($('#pt', st), { tool: 'rect', color: '#1E88E5', onChange: () => upd(), onFill: () => upd() });
+    function upd() {
+      const s = paint.st, m = { s: s.shapes.size >= 2, f: s.fills.size >= 2, d: s.strokes >= 1 };
+      Object.keys(m).forEach((k) => $(`#tasks li[data-k="${k}"]`).classList.toggle('done', m[k]));
+      $('#done').disabled = !(m.s && m.f && m.d);
+    }
+    $('#done').onclick = () => {
+      correct += 1; total += 1; KIT.addScore(20); review.push({ ok: true, text: 'ด่าน 4 สร้างภาพของฉันสำเร็จ' });
+      KIT.end({ correct, total, label: 'ทำถูกครั้งแรก', review,
+        lesson: '<b>โปรแกรมวาดภาพ</b> (เช่น Paint, Tux Paint) มีเครื่องมือ: ✏️ ดินสอ วาดเส้นเล็ก · 🖌️ พู่กัน เส้นหนา · 🪣 ถังสี เทสีในพื้นที่ปิด · 🧽 ยางลบ · ⬜⚪🔺📏 รูปทรง กดค้างแล้วลาก · ↶ ย้อนกลับเมื่อทำผิด นำรูปทรงมาต่อกันสร้างเป็นภาพได้' });
+    };
+  }
+
+  KIT.init({
+    title: 'ฝึกวาดภาพ', grade: 'ป.1–ป.2', subject: 'คอมพิวเตอร์', topic: 'สร้างภาพด้วยคอมพิวเตอร์',
+    icon: '🎨🖌️', color: '#F06292', soft: '#FFE1EC',
+    howto: ['ด่าน 1 รู้จักเครื่องมือ: แตะปุ่มเครื่องมือให้ถูก', 'ด่าน 2 ลากเส้นตามรอยประ · ด่าน 3 ระบายสีบ้านด้วยถังสี', 'ด่าน 4 วาดภาพอิสระด้วยรูปทรงและสี (ภาพไม่ถูกบันทึก)'],
+    start: (st) => { correct = 0; total = 0; review = []; level1(st); },
+  });
+})();
+</script>
+</body>
+</html>
