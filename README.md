@@ -36,6 +36,7 @@ https://gtdce00.github.io/kids-computer-adventure-p1/ — หน้าห้อ�
 | ฝึกกดแป้นพิมพ์และดับเบิลคลิก | ป.2 | `games/p2-keys/` |
 | ลวดลายต่อไปคืออะไร | ป.2 | `games/p2-pattern/` |
 | พิมพ์ตัวอักษรตามแบบ | ป.2 | `games/p2-letters/` |
+| Python นักสืบโค้ด (PRIMM) | ม.2 | `games/m2-python/` (ข้อมูลสร้างจาก `tools/build_m2python.py`) |
 | อุปกรณ์ดิจิทัลรอบตัว | ป.2 | `games/p2-digital/` |
 | หุ่นยนต์เดินตามลูกศร | ป.2 | `games/p2-arrows/` |
 | เรียงลำดับขั้นตอน | ป.3 | `games/p3-steps/` |

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python นักสืบโค้ด (PRIMM)</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+  .mcard{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:18px;border-radius:22px;background:#fff;border:var(--b);box-shadow:4px 4px 0 var(--ink);font:inherit;color:var(--ink);cursor:pointer}
+  .mcard:hover{transform:translateY(-3px)}
+  .mcard .mi{font-size:46px;line-height:1}.mcard b{font-size:21px}.mcard small{font-size:15px;color:var(--ink2);line-height:1.4}
+  .mcard .tag{background:var(--c-soft);border-radius:999px;padding:2px 10px;font-size:13px;font-weight:700}
+  .mcard.all{grid-column:1/-1;flex-direction:row;align-items:center;gap:14px;background:var(--c-soft)}
+  .two{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+  @media (max-width:820px){.two{grid-template-columns:1fr}}
+  .code{background:#1E2235;color:#E8ECF8;border-radius:16px;padding:12px 0;font:500 19px/1.55 Consolas,'Cascadia Mono','Courier New',monospace;overflow-x:auto;text-align:left;border:3px solid var(--ink)}
+  .code .ln{display:flex;padding:0 14px 0 0;border-left:6px solid transparent;white-space:pre}
+  .code .ln .no{width:42px;flex:none;text-align:right;padding-right:14px;color:#6E7799;user-select:none}
+  .code.pick .ln{cursor:pointer}.code.pick .ln:hover{background:#2E3452}
+  .code .ln.now{background:#3B4470;border-left-color:#FFD54F}
+  .code .ln.hit{background:#1F5136;border-left-color:#4CE08A}
+  .code .ln.miss{background:#5A2330;animation:shake .4s}
+  .code .ln.glow{outline:3px solid #FFD54F;outline-offset:-3px}
+  .code .ln.bug{background:#5A2330;border-left-color:#FF6B81}
+  .k{color:#C792EA;font-weight:700}.f{color:#82AAFF}.s{color:#C3E88D}.n{color:#F78C6C}.c{color:#7F8AB0;font-style:italic}
+  .blank{display:inline-block;min-width:3ch;padding:0 6px;border-radius:6px;background:#FFD54F;color:#1E2235;font-weight:700;text-align:center}
+  .blank.ok{background:#4CE08A}
+  .con{background:#0E1220;color:#7CF29C;border-radius:14px;padding:10px 14px;min-height:74px;font:500 18px/1.5 Consolas,'Courier New',monospace;white-space:pre-wrap;text-align:left;border:3px solid var(--ink)}
+  .con.err{color:#FF8A9A}.con .hd{color:#8A93B5;font-size:13px;display:block;margin-bottom:2px}
+  .vars{width:100%;border-collapse:collapse;font:500 17px Consolas,'Courier New',monospace;background:#fff;border:3px solid var(--ink);border-radius:14px;overflow:hidden}
+  .vars th{background:var(--c-soft);font:700 15px 'Mitr',sans-serif;padding:4px 8px;text-align:left}
+  .vars td{padding:4px 10px;border-top:1px solid #E1E5F2}.vars td.ch{background:#FFF6C9;transition:background .6s}
+  .lbl{font-weight:700;font-size:16px;margin:10px 0 4px;text-align:left}
+  .opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}
+  .opt{background:#fff;border:var(--b);border-radius:16px;box-shadow:3px 3px 0 var(--ink);padding:10px 14px;font:500 18px/1.45 Consolas,'Courier New',monospace;white-space:pre-wrap;text-align:left;color:var(--ink);cursor:pointer;min-height:60px}
+  .opt.th{font-family:'Mitr',sans-serif}
+  .opt.right{background:var(--ok-soft);border-color:var(--ok)}.opt.wrong{background:var(--no-soft);border-color:var(--no);opacity:.6}
+  .opt.glow{outline:4px solid var(--sun);outline-offset:2px}
+  .opt:disabled{cursor:default}
+  .q{font-size:21px;text-align:left;margin:4px 0 10px}
+  .stepbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .want{background:#E8FFF0;border:3px dashed var(--ok);border-radius:14px;padding:8px 14px;font:500 18px/1.5 Consolas,'Courier New',monospace;white-space:pre-wrap;text-align:left}
+  .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .chip{background:#fff;border:var(--b);border-radius:14px;box-shadow:3px 3px 0 var(--ink);padding:8px 18px;font:700 22px Consolas,'Courier New',monospace;color:var(--ink);cursor:pointer}
+  .chip.wrong{background:var(--no-soft);opacity:.55}.chip.right{background:var(--ok-soft)}.chip.glow{outline:4px solid var(--sun);outline-offset:2px}
+  .primm{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
+  .primm span{padding:3px 12px;border-radius:999px;background:#EEF1FA;font-size:14px;font-weight:700;color:#8790AE}
+  .primm span.on{background:var(--c);color:#fff}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ม.2 วิทยาการคำนวณ · การเขียนโปรแกรมภาษา Python ตามขั้น PRIMM
+   Predict (ทายผล) → Run (รันดูทีละบรรทัด) → Investigate (สืบโค้ด) → Modify (แก้โค้ด) + จับบั๊ก
+   ข้อมูลข้างล่างสร้างจาก tools/build_m2python.py ซึ่งรันโค้ดทุกข้อด้วย Python จริง (ผลลัพธ์และ Error ตรงของจริง)
+   ไม่ถามชื่อ ไม่เก็บข้อมูล ไม่โหลดอะไรจากอินเทอร์เน็ต ไม่มีเสียงพูด */
+/*DATA*/const DATA = {"predict": [{"title": "print และตัวแปร", "code": "name = \"แมว\"\nprint(\"สวัสดี\", name)", "out": "สวัสดี แมว", "opts": ["สวัสดี แมว", "สวัสดี name", "สวัสดีแมว", "Error"], "why": "print ที่มีหลายค่าคั่นด้วย , จะเว้นวรรคให้ 1 ช่อง และ name ไม่มี \" \" จึงแสดงค่าในตัวแปร", "steps": [{"l": 0, "v": {"name": "'แมว'"}, "o": ""}, {"l": 1, "v": {"name": "'แมว'"}, "o": "สวัสดี แมว\n"}]}, {"title": "บวก คูณ", "code": "a = 7\nb = 2\nprint(a + b)\nprint(a * b)", "out": "9\n14", "opts": ["9\n14", "72\n14", "9\n72", "a + b\na * b"], "why": "a และ b เก็บตัวเลข จึงบวก/คูณกันได้ และ print 2 ครั้ง ได้ 2 บรรทัด", "steps": [{"l": 0, "v": {"a": "7"}, "o": ""}, {"l": 1, "v": {"a": "7", "b": "2"}, "o": ""}, {"l": 2, "v": {"a": "7", "b": "2"}, "o": "9\n"}, {"l": 3, "v": {"a": "7", "b": "2"}, "o": "9\n14\n"}]}, {"title": "เปลี่ยนค่าตัวแปร", "code": "x = 5\nx = x + 3\nprint(x)", "out": "8", "opts": ["8", "5", "53", "x + 3"], "why": "x = x + 3 คือ เอาค่าเดิมของ x (5) บวก 3 แล้วเก็บกลับเข้า x", "steps": [{"l": 0, "v": {"x": "5"}, "o": ""}, {"l": 1, "v": {"x": "8"}, "o": ""}, {"l": 2, "v": {"x": "8"}, "o": "8\n"}]}, {"title": "หารปัดเศษ และหารเอาเศษ", "code": "print(7 // 2, 7 % 2)", "out": "3 1", "opts": ["3 1", "3.5 0", "1 3", "3 0.5"], "why": "// หารแล้วเอาแต่จำนวนเต็ม (7 // 2 = 3) และ % ให้เศษ (7 % 2 = 1)", "steps": [{"l": 0, "v": {}, "o": "3 1\n"}]}, {"title": "ต่อข้อความ", "code": "s = \"Py\" + \"thon\"\nprint(s * 2)", "out": "PythonPython", "opts": ["PythonPython", "Python 2", "Python\nPython", "Error"], "why": "ข้อความ + ข้อความ = ต่อกัน และ ข้อความ * 2 = ซ้ำ 2 ครั้งติดกัน", "steps": [{"l": 0, "v": {"s": "'Python'"}, "o": ""}, {"l": 1, "v": {"s": "'Python'"}, "o": "PythonPython\n"}]}, {"title": "if / else", "code": "score = 65\nif score >= 50:\n    print(\"ผ่าน\")\nelse:\n    print(\"ไม่ผ่าน\")", "out": "ผ่าน", "opts": ["ผ่าน", "ไม่ผ่าน", "ผ่าน\nไม่ผ่าน", "(ไม่แสดงอะไร)"], "why": "65 >= 50 เป็นจริง (True) จึงทำเฉพาะส่วนของ if และข้ามส่วน else", "steps": [{"l": 0, "v": {"score": "65"}, "o": ""}, {"l": 1, "v": {"score": "65"}, "o": ""}, {"l": 2, "v": {"score": "65"}, "o": "ผ่าน\n"}]}, {"title": "if / elif / else", "code": "t = 30\nif t > 35:\n    print(\"ร้อนมาก\")\nelif t > 25:\n    print(\"อุ่น\")\nelse:\n    print(\"เย็น\")", "out": "อุ่น", "opts": ["อุ่น", "ร้อนมาก", "อุ่น\nเย็น", "เย็น"], "why": "ตรวจจากบนลงล่าง 30 > 35 เท็จ → ตรวจ elif 30 > 25 จริง → แสดง \"อุ่น\" แล้วหยุด ไม่ตรวจต่อ", "steps": [{"l": 0, "v": {"t": "30"}, "o": ""}, {"l": 1, "v": {"t": "30"}, "o": ""}, {"l": 3, "v": {"t": "30"}, "o": ""}, {"l": 4, "v": {"t": "30"}, "o": "อุ่น\n"}]}, {"title": "for กับ range", "code": "for i in range(3):\n    print(i)", "out": "0\n1\n2", "opts": ["0\n1\n2", "1\n2\n3", "0\n1\n2\n3", "3"], "why": "range(3) ให้ค่า 0, 1, 2 (เริ่มที่ 0 และไม่ถึง 3)", "steps": [{"l": 0, "v": {"i": "0"}, "o": ""}, {"l": 1, "v": {"i": "0"}, "o": "0\n"}, {"l": 0, "v": {"i": "1"}, "o": "0\n"}, {"l": 1, "v": {"i": "1"}, "o": "0\n1\n"}, {"l": 0, "v": {"i": "2"}, "o": "0\n1\n"}, {"l": 1, "v": {"i": "2"}, "o": "0\n1\n2\n"}, {"l": 0, "v": {"i": "2"}, "o": "0\n1\n2\n"}]}, {"title": "สะสมผลรวม", "code": "total = 0\nfor n in range(1, 4):\n    total = total + n\nprint(total)", "out": "6", "opts": ["6", "10", "3", "1\n3\n6"], "why": "range(1, 4) คือ 1, 2, 3 → total = 0+1+2+3 = 6 และ print อยู่นอกลูป จึงแสดงครั้งเดียว", "steps": [{"l": 0, "v": {"total": "0"}, "o": ""}, {"l": 1, "v": {"total": "0", "n": "1"}, "o": ""}, {"l": 2, "v": {"total": "1", "n": "1"}, "o": ""}, {"l": 1, "v": {"total": "1", "n": "2"}, "o": ""}, {"l": 2, "v": {"total": "3", "n": "2"}, "o": ""}, {"l": 1, "v": {"total": "3", "n": "3"}, "o": ""}, {"l": 2, "v": {"total": "6", "n": "3"}, "o": ""}, {"l": 1, "v": {"total": "6", "n": "3"}, "o": ""}, {"l": 3, "v": {"total": "6", "n": "3"}, "o": "6\n"}]}, {"title": "while นับถอยหลัง", "code": "n = 3\nwhile n > 0:\n    print(n)\n    n = n - 1\nprint(\"ปล่อยจรวด!\")", "out": "3\n2\n1\nปล่อยจรวด!", "opts": ["3\n2\n1\nปล่อยจรวด!", "3\n2\n1\n0\nปล่อยจรวด!", "3\nปล่อยจรวด!", "2\n1\n0\nปล่อยจรวด!"], "why": "วนซ้ำขณะ n > 0 เมื่อ n เหลือ 0 เงื่อนไขเป็นเท็จ ลูปจึงหยุด (ไม่แสดง 0)", "steps": [{"l": 0, "v": {"n": "3"}, "o": ""}, {"l": 1, "v": {"n": "3"}, "o": ""}, {"l": 2, "v": {"n": "3"}, "o": "3\n"}, {"l": 3, "v": {"n": "2"}, "o": "3\n"}, {"l": 1, "v": {"n": "2"}, "o": "3\n"}, {"l": 2, "v": {"n": "2"}, "o": "3\n2\n"}, {"l": 3, "v": {"n": "1"}, "o": "3\n2\n"}, {"l": 1, "v": {"n": "1"}, "o": "3\n2\n"}, {"l": 2, "v": {"n": "1"}, "o": "3\n2\n1\n"}, {"l": 3, "v": {"n": "0"}, "o": "3\n2\n1\n"}, {"l": 1, "v": {"n": "0"}, "o": "3\n2\n1\n"}, {"l": 4, "v": {"n": "0"}, "o": "3\n2\n1\nปล่อยจรวด!\n"}]}, {"title": "ลิสต์", "code": "fruits = [\"กล้วย\", \"มะม่วง\", \"ส้ม\"]\nprint(fruits[1])\nprint(len(fruits))", "out": "มะม่วง\n3", "opts": ["มะม่วง\n3", "กล้วย\n3", "มะม่วง\n2", "ส้ม\n3"], "why": "ลำดับในลิสต์เริ่มที่ 0 → fruits[1] คือตัวที่ 2 = มะม่วง และ len() นับจำนวนสมาชิก = 3", "steps": [{"l": 0, "v": {"fruits": "['กล้วย', 'มะม่วง', 'ส้ม']"}, "o": ""}, {"l": 1, "v": {"fruits": "['กล้วย', 'มะม่วง', 'ส้ม']"}, "o": "มะม่วง\n"}, {"l": 2, "v": {"fruits": "['กล้วย', 'มะม่วง', 'ส้ม']"}, "o": "มะม่วง\n3\n"}]}], "inv": [{"t": "line", "code": "print(\"เริ่ม\")\nfor i in range(5):\n    print(\"⭐\")\nprint(\"จบ\")", "q": "บรรทัดไหน<b>ทำงานซ้ำ 5 ครั้ง</b>?", "a": [2], "why": "บรรทัดที่ย่อหน้าอยู่ใต้ for คือส่วนที่ทำซ้ำ (range(5) = 5 รอบ)"}, {"t": "line", "code": "score = 40\nif score >= 50:\n    print(\"ผ่าน\")\nelse:\n    print(\"ไม่ผ่าน\")", "q": "บรรทัดไหนทำงานเมื่อเงื่อนไข<b>เป็นเท็จ (False)</b>?", "a": [4], "why": "เมื่อ score >= 50 เป็นเท็จ โปรแกรมจะไปทำบรรทัดที่ย่อหน้าอยู่ใต้ else"}, {"t": "line", "code": "price = 120\nqty = 3\npay = price * qty\nprint(\"จ่าย\", pay, \"บาท\")", "q": "บรรทัดไหน<b>คำนวณเงินที่ต้องจ่าย</b>?", "a": [2], "why": "pay = price * qty คือการคำนวณ (ราคา × จำนวน) แล้วเก็บผลไว้ในตัวแปร pay"}, {"t": "mcq", "code": "price = 120\nqty = 3\npay = price * qty\nprint(\"จ่าย\", pay, \"บาท\")", "q": "โปรแกรมนี้มี<b>ตัวแปรกี่ตัว</b>?", "opts": ["3", "2", "4", "1"], "why": "ตัวแปรคือชื่อที่อยู่หน้าเครื่องหมาย = มี price, qty, pay รวม 3 ตัว (print เป็นคำสั่ง ไม่ใช่ตัวแปร)"}, {"t": "line", "code": "n = 3\nwhile n > 0:\n    print(n)\n    n = n - 1\nprint(\"ปล่อยจรวด!\")", "q": "ถ้า<b>ลบบรรทัดไหน</b>ออก ลูปจะวนไม่รู้จบ?", "a": [3], "why": "n = n - 1 ทำให้ n ลดลงจนเงื่อนไข n > 0 เป็นเท็จ ถ้าไม่มีบรรทัดนี้ n = 3 ตลอด ลูปไม่หยุด"}, {"t": "mcq", "code": "total = 0\nfor n in range(1, 4):\n    total = total + n\nprint(total)", "q": "ในรอบ<b>สุดท้าย</b>ของลูป ตัวแปร n มีค่าเท่าไร?", "opts": ["3", "4", "2", "6"], "why": "range(1, 4) ให้ 1, 2, 3 ค่าสุดท้ายคือ 3 (ไม่ถึง 4)"}, {"t": "line", "code": "age = 13\nif age >= 12:\n    print(\"ตั๋วผู้ใหญ่\")\nprint(\"ขอบคุณ\")", "q": "บรรทัดไหนเป็น<b>เงื่อนไข</b> (คำถามที่ได้คำตอบ True/False)?", "a": [1], "why": "if age >= 12: คือการตรวจเงื่อนไข ผลเป็น True หรือ False"}, {"t": "mcq", "code": "for i in range(4):\n    print(\"🐟\")\nprint(\"🐟\")", "q": "โปรแกรมนี้แสดง 🐟 <b>ทั้งหมดกี่ตัว</b>?", "opts": ["5", "4", "8", "1"], "why": "ในลูป 4 ตัว + บรรทัดสุดท้ายอยู่นอกลูป (ไม่ย่อหน้า) อีก 1 ตัว = 5"}], "bug": [{"code": "x = 10\nif x > 5\n    print(\"มากกว่า 5\")", "line": 1, "opts": ["if x > 5:", "if (x > 5)", "if x > 5;", "If x > 5:"], "err": "SyntaxError: expected ':'  (บรรทัด 2)", "got": "", "want": "มากกว่า 5", "why": "หลัง if, elif, else, for, while ต้องมีเครื่องหมาย : (โคลอน) เสมอ"}, {"code": "name = \"Mali\"\nprnt(\"Hello\", name)", "line": 1, "opts": ["print(\"Hello\", name)", "Print(\"Hello\", name)", "print(Hello, name)", "prnt(\"Hello\" name)"], "err": "NameError: name 'prnt' is not defined", "got": "", "want": "Hello Mali", "why": "สะกดคำสั่งผิด (prnt) Python ไม่รู้จัก ต้องเป็น print ตัวพิมพ์เล็กทั้งหมด"}, {"code": "print(\"สวัสดีชาวโลก)", "line": 0, "opts": ["print(\"สวัสดีชาวโลก\")", "print(สวัสดีชาวโลก)", "print(\"สวัสดีชาวโลก)\"", "print\"สวัสดีชาวโลก\""], "err": "SyntaxError: unterminated string literal (detected at line 1)  (บรรทัด 1)", "got": "", "want": "สวัสดีชาวโลก", "why": "ข้อความต้องมีเครื่องหมาย \" เปิดและปิดครบคู่"}, {"code": "for i in range(3):\nprint(i)", "line": 1, "opts": ["    print(i)", "print(i):", "print (i)", "print(i);"], "err": "IndentationError: expected an indented block after 'for' statement on line 1  (บรรทัด 2)", "got": "", "want": "0\n1\n2", "why": "คำสั่งที่อยู่ในลูปต้อง<b>ย่อหน้า</b> (เว้น 4 ช่อง) ไม่อย่างนั้นเกิด IndentationError"}, {"code": "ans = 4\nif ans = 4:\n    print(\"ถูกต้อง\")", "line": 1, "opts": ["if ans == 4:", "if ans := 4", "if ans = = 4:", "if 4 = ans:"], "err": "SyntaxError: invalid syntax. Maybe you meant '==' or ':=' instead of '='?  (บรรทัด 2)", "got": "", "want": "ถูกต้อง", "why": "= ใช้<b>เก็บค่า</b> ส่วน == ใช้<b>เปรียบเทียบ</b>ว่าเท่ากันไหม"}, {"code": "age = 13\nprint(\"อายุ \" + age + \" ปี\")", "line": 1, "opts": ["print(\"อายุ \" + str(age) + \" ปี\")", "print(\"อายุ \" + int(age) + \" ปี\")", "print(\"อายุ \" + \"age\" + \" ปี\")", "print(\"อายุ \" + age, + \" ปี\")"], "err": "TypeError: can only concatenate str (not \"int\") to str", "got": "", "want": "อายุ 13 ปี", "why": "ข้อความ + ตัวเลข ไม่ได้ ต้องแปลงตัวเลขเป็นข้อความด้วย str() ก่อน"}, {"code": "# ต้องการแสดงเลข 1 ถึง 5\nfor i in range(1, 5):\n    print(i)", "line": 1, "opts": ["for i in range(1, 6):", "for i in range(0, 5):", "for i in range(5):", "for i in range(1, 5, 1):"], "err": null, "got": "1\n2\n3\n4", "want": "1\n2\n3\n4\n5", "why": "<b>บั๊กตรรกะ</b>: โปรแกรมไม่ Error แต่ผลผิด range(1, 5) หยุดก่อนถึง 5 ต้องใช้ range(1, 6)"}, {"code": "# ต้องการหาค่าเฉลี่ยของ a และ b\na = 8\nb = 6\navg = a + b / 2\nprint(avg)", "line": 3, "opts": ["avg = (a + b) / 2", "avg = a + (b / 2)", "avg = a + b // 2", "avg = a / 2 + b"], "err": null, "got": "11.0", "want": "7.0", "why": "<b>บั๊กตรรกะ</b>: Python คิด / ก่อน + จึงต้องใส่วงเล็บ (a + b) ก่อนหาร"}], "mod": [{"code": "print(\"สวัสดี\", ___)", "opts": ["\"ม.2\"", "ม.2", "\"ม.2", "name"], "want": "สวัสดี ม.2", "res": ["สวัสดี ม.2", "SyntaxError: invalid syntax. Perhaps you forgot a comma?  (บรรทัด 1)", "SyntaxError: unterminated string literal (detected at line 1)  (บรรทัด 1)", "NameError: name 'name' is not defined"], "why": "ข้อความต้องอยู่ในเครื่องหมาย \" \""}, {"code": "for i in range(___):\n    print(\"⭐\")", "opts": ["4", "3", "5", "\"4\""], "want": "⭐\n⭐\n⭐\n⭐", "res": ["⭐\n⭐\n⭐\n⭐", "⭐\n⭐\n⭐", "⭐\n⭐\n⭐\n⭐\n⭐", "TypeError: 'str' object cannot be interpreted as an integer"], "why": "range(4) วน 4 รอบ (ใส่ \"4\" เป็นข้อความจะ Error)"}, {"code": "n = 8\nif n % 2 ___ 0:\n    print(\"คู่\")\nelse:\n    print(\"คี่\")", "opts": ["==", "=", "!=", ">"], "want": "คู่", "res": ["คู่", "SyntaxError: cannot assign to expression here. Maybe you meant '==' instead of '='?  (บรรทัด 2)", "คี่", "คี่"], "why": "เลขคู่หาร 2 เหลือเศษ 0 จึงใช้ n % 2 == 0"}, {"code": "for i in range(2, 11, ___):\n    print(i)", "opts": ["2", "1", "3", "10"], "want": "2\n4\n6\n8\n10", "res": ["2\n4\n6\n8\n10", "2\n3\n4\n5\n6\n7\n8\n9\n10", "2\n5\n8", "2"], "why": "ตัวที่ 3 ใน range คือ \"ก้าว\" เพิ่มทีละ 2 ได้ 2, 4, 6, 8, 10"}, {"code": "total = 0\nfor n in range(1, 6):\n    total = total ___ n\nprint(total)", "opts": ["+", "*", "-", "="], "want": "15", "res": ["15", "0", "-15", "5"], "why": "สะสมผลรวม total = total + n → 1+2+3+4+5 = 15"}, {"code": "n = 5\nwhile n ___ 0:\n    print(n)\n    n = n - 1", "opts": [">", ">=", "<", "=="], "want": "5\n4\n3\n2\n1", "res": ["5\n4\n3\n2\n1", "5\n4\n3\n2\n1\n0", "(ไม่แสดงอะไร)", "(ไม่แสดงอะไร)"], "why": "n > 0 หยุดเมื่อ n เป็น 0 (ถ้าใช้ >= จะแสดง 0 ด้วย)"}]};/*END*/
+(function () {
+  const { $, $$, shuffle } = KIT;
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const KW = /^(if|elif|else|for|in|while|and|or|not|True|False|None|def|return|import)$/, FN = /^(print|range|len|str|int|float|input)$/;
+  function hl(line) {
+    let o = '', m; const re = /(#.*$)|("[^"]*"?)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_]\w*)|(___)|([\s\S])/g;
+    while ((m = re.exec(line))) {
+      if (m[1]) o += `<span class="c">${esc(m[1])}</span>`;
+      else if (m[2]) o += `<span class="s">${esc(m[2])}</span>`;
+      else if (m[3]) o += `<span class="n">${m[3]}</span>`;
+      else if (m[4]) o += KW.test(m[4]) ? `<span class="k">${m[4]}</span>` : FN.test(m[4]) ? `<span class="f">${m[4]}</span>` : m[4];
+      else if (m[5]) o += '<span class="blank">?</span>';
+      else o += esc(m[6]);
+    }
+    return o || ' ';
+  }
+  const codeHTML = (code, cls = '') => `<div class="code ${cls}">${code.split('\n').map((l, i) => `<div class="ln" data-i="${i}"><span class="no">${i + 1}</span><span>${hl(l)}</span></div>`).join('')}</div>`;
+  const conHTML = (txt, err, head = 'ผลลัพธ์ (Output)') => `<div class="con ${err ? 'err' : ''}"><span class="hd">${head}</span>${esc(txt)}</div>`;
+  const STAGES = {
+    predict: { icon: '🔮', name: 'ทายผล → รันดู', tag: 'P + R', sub: 'อ่านโค้ด ทายว่าจะแสดงอะไร แล้วรันดูทีละบรรทัดว่าค่าตัวแปรเปลี่ยนอย่างไร', items: () => DATA.predict, lesson: '<b>Predict → Run</b>: อ่านโค้ดทีละบรรทัดจากบนลงล่าง จดค่าตัวแปรที่เปลี่ยนไป แล้วจึงทายผลลัพธ์ เทียบกับผลจริงเพื่อหาว่าเข้าใจตรงไหนผิด' },
+    inv: { icon: '🔍', name: 'สืบโค้ด', tag: 'I', sub: 'ชี้บรรทัดที่ทำหน้าที่ต่าง ๆ และตอบคำถามเกี่ยวกับโค้ด', items: () => DATA.inv, lesson: '<b>Investigate</b>: บรรทัดที่<b>ย่อหน้า</b>อยู่ใต้ if / for / while เป็นส่วนของคำสั่งนั้น · ตัวแปรคือชื่อหน้า = · เงื่อนไขให้ผล True/False' },
+    bug: { icon: '🐞', name: 'จับบั๊ก', tag: 'Debug', sub: 'รันโค้ดที่มีบั๊ก ชี้บรรทัดที่ผิด แล้วเลือกวิธีแก้ให้ถูก', items: () => DATA.bug, lesson: '<b>จับบั๊ก</b>: อ่านข้อความ Error ดูชนิด (SyntaxError, NameError, TypeError, IndentationError) และเลขบรรทัด · ถ้าไม่ Error แต่ผลผิด คือ<b>บั๊กตรรกะ</b> ให้เทียบผลที่ได้กับผลที่ต้องการ' },
+    mod: { icon: '🛠️', name: 'แก้โค้ด', tag: 'M', sub: 'เติมคำในช่องว่างให้โปรแกรมแสดงผลตามที่ต้องการ', items: () => DATA.mod, lesson: '<b>Modify</b>: ดูผลลัพธ์ที่ต้องการก่อน แล้วคิดว่าต้องเปลี่ยนค่าหรือเครื่องหมายใดในโค้ด ลองรันเพื่อตรวจ' },
+  };
+  const ORDER = ['predict', 'inv', 'mod', 'bug'];
+  const primmBar = (key) => `<div class="primm">${[['predict', 'Predict ทายผล'], ['predict', 'Run รันดู'], ['inv', 'Investigate สืบโค้ด'], ['mod', 'Modify แก้โค้ด'], ['bug', 'จับบั๊ก']].map(([k, t]) => `<span class="${k === key ? 'on' : ''}">${t}</span>`).join('')}</div>`;
+
+  function menu(st) {
+    st.innerHTML = `<section class="card"><h2 class="head" style="font-size:28px">เลือกภารกิจนักสืบโค้ด 🕵️</h2>
+      <p class="saytx">ฝึกตามขั้น PRIMM: ทายผล → รันดู → สืบโค้ด → แก้โค้ด และฝึกจับบั๊ก</p>
+      <div class="menu mt">${ORDER.map((k) => { const S = STAGES[k]; return `<button class="mcard" data-k="${k}"><span class="mi">${S.icon}</span><span class="tag">${S.tag}</span><b>${S.name}</b><small>${S.sub}</small><small>${S.items().length} ข้อ</small></button>`; }).join('')}
+      <button class="mcard all" data-k="all"><span class="mi">🚀</span><span><b>เล่นครบทุกขั้นตามลำดับ PRIMM</b><br><small>ทายผล → สืบโค้ด → แก้โค้ด → จับบั๊ก (ประมาณ 1 คาบ)</small></span></button></div></section>`;
+    $$('.mcard', st).forEach((b) => (b.onclick = () => { KIT.sfx.tap(); const k = b.dataset.k; if (k === 'all') chain(st, ORDER.slice(), [], 0, 0); else stage(st, k, (c, t, rv) => finish(st, c, t, rv, STAGES[k].lesson)); }));
+  }
+  function finish(st, correct, total, review, lesson) {
+    KIT.end({ correct, total, label: 'ทำถูกตั้งแต่ครั้งแรก', review, lesson });
+    const row = $('.end .row'); const b = document.createElement('button'); b.className = 'btn white'; b.textContent = '🕵️ เลือกภารกิจอื่น';
+    b.onclick = () => { KIT.sfx.tap(); KIT.resetScore(); menu(KIT.stage()); }; row.prepend(b);
+  }
+  function chain(st, keys, review, c, t) {
+    if (!keys.length) return finish(st, c, t, review, ORDER.map((k) => STAGES[k].lesson).join('<br>'));
+    const k = keys.shift(); stage(st, k, (cc, tt, rv) => chain(st, keys, review.concat(rv), c + cc, t + tt));
+  }
+  function stage(st, key, done) {
+    const S = STAGES[key], items = key === 'predict' ? S.items() : shuffle(S.items().slice()); const res = [], rev = []; let i = 0;
+    const next = () => {
+      if (i >= items.length) return done(res.filter(Boolean).length, items.length, rev);
+      st.innerHTML = `<section class="card">${primmBar(key)}<p class="qtag">${S.icon} ${S.name} · ข้อ ${i + 1} / ${items.length}</p>${KIT.dots(items.length, i, res)}<div class="body"></div><div class="fbhost"></div></section>`;
+      R[key]($('.body', st), items[i], (ok, short) => {
+        res[i] = ok; rev.push({ ok, text: `${S.icon} ${short}` }); if (ok) KIT.addScore(10);
+        return () => { i++; next(); };
+      }, st, i + 1 < items.length);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    next();
+  }
+  const fb = (st, ok, title, why, more, go) => KIT.feedback($('.fbhost', st), ok, title, why, more ? 'ข้อต่อไป →' : 'ไปต่อ →', go);
+  const glowAfter2 = (wrong, el) => { if (wrong >= 2 && el) el.classList.add('glow'); };
+
+  /* ---------- แต่ละแบบฝึก ---------- */
+  const R = {
+    // Predict → Run
+    predict(host, it, report, st, more) {
+      const opts = shuffle(it.opts.map((t) => ({ t, ok: t === it.out })));
+      host.innerHTML = `<p class="q"><b>${esc(it.title)}</b> · อ่านโค้ดแล้ว<b>ทายผลลัพธ์</b> 🔮</p><div class="two"><div>${codeHTML(it.code)}</div>
+        <div><p class="lbl">ผลลัพธ์จะเป็นแบบไหน?</p><div class="opts">${opts.map((o, k) => `<button class="opt ${/^[฀-๿(]/.test(o.t) ? 'th' : ''}" data-k="${k}">${esc(o.t)}</button>`).join('')}</div>
+        <div class="runbox" hidden><p class="lbl">ตัวแปร (Variables)</p><table class="vars"><thead><tr><th>ชื่อ</th><th>ค่า</th></tr></thead><tbody></tbody></table><p class="lbl">หน้าจอ</p><div class="conhost">${conHTML('', false)}</div>
+        <div class="stepbar"><button class="btn" id="bRun">▶ รันทั้งหมด</button><button class="btn white" id="bStep">⏭ ทีละบรรทัด</button></div></div></div></div>`;
+      let firstOk = null;
+      $$('.opt', host).forEach((b) => (b.onclick = () => {
+        if (firstOk !== null) return; const o = opts[Number(b.dataset.k)]; firstOk = o.ok;
+        $$('.opt', host).forEach((x, k) => { x.disabled = true; if (opts[k].ok) x.classList.add('right'); });
+        if (!o.ok) { b.classList.add('wrong'); KIT.sfx.no(); } else KIT.sfx.ok();
+        $('.runbox', host).hidden = false; $('.lbl', host).textContent = o.ok ? '✅ ทายถูก! กดรันเพื่อดูว่าทำไม' : '❌ ยังไม่ถูก กดรันดูทีละบรรทัดว่าเกิดอะไรขึ้น';
+      }));
+      let si = 0, timer = null, prevV = {};
+      const show = () => {
+        if (si >= it.steps.length || !host.isConnected) { clearInterval(timer); return; }
+        const s = it.steps[si]; $$('.code .ln', host).forEach((l) => l.classList.toggle('now', Number(l.dataset.i) === s.l));
+        $('.vars tbody', host).innerHTML = Object.entries(s.v).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="${prevV[k] !== v ? 'ch' : ''}">${esc(v)}</td></tr>`).join('') || '<tr><td colspan="2" style="color:#999">ยังไม่มีตัวแปร</td></tr>';
+        prevV = s.v; $('.conhost', host).innerHTML = conHTML(s.o.replace(/\n$/, ''), false); KIT.sfx.step();
+        si++; if (si >= it.steps.length) end();
+      };
+      const end = () => {
+        clearInterval(timer); $('.stepbar', host).style.display = 'none';
+        $$('.code .ln', host).forEach((l) => l.classList.remove('now'));
+        const go = report(firstOk, it.title);
+        fb(st, firstOk, firstOk ? 'ทายถูกตั้งแต่แรก!' : 'ผลจริงเป็นแบบนี้', it.why, more, go);
+      };
+      $('#bRun', host).onclick = () => { $('#bStep', host).disabled = true; $('#bRun', host).disabled = true; timer = setInterval(show, 650); show(); }; // รันต่อจากบรรทัดปัจจุบันได้
+      $('#bStep', host).onclick = () => show();
+    },
+
+    // Investigate
+    inv(host, it, report, st, more) {
+      const mcq = it.t === 'mcq'; let wrong = 0, over = false;
+      const opts = mcq ? shuffle(it.opts.map((t, k) => ({ t, ok: k === 0 }))) : [];
+      host.innerHTML = `<p class="q">🔍 ${it.q}</p><div class="${mcq ? 'two' : ''}"><div>${codeHTML(it.code, mcq ? '' : 'pick')}</div>
+        ${mcq ? `<div><div class="opts">${opts.map((o, k) => `<button class="opt th" data-k="${k}" style="font-size:26px;text-align:center">${esc(o.t)}</button>`).join('')}</div></div>` : '<p class="saytx mt-s">👆 แตะบรรทัดในโค้ด</p>'}</div>`;
+      const win = () => { over = true; KIT.sfx.ok(); const go = report(wrong === 0, it.q.replace(/<[^>]+>/g, '')); fb(st, true, wrong === 0 ? 'ถูกต้อง! สืบเก่งมาก' : 'ถูกแล้ว', it.why, more, go); };
+      if (mcq) $$('.opt', host).forEach((b) => (b.onclick = () => {
+        if (over) return; const o = opts[Number(b.dataset.k)];
+        if (o.ok) { b.classList.add('right'); $$('.opt', host).forEach((x) => (x.disabled = true)); win(); }
+        else { wrong++; b.classList.add('wrong'); b.disabled = true; KIT.sfx.no(); glowAfter2(wrong, $$('.opt', host)[opts.findIndex((x) => x.ok)]); }
+      }));
+      else $$('.code .ln', host).forEach((l) => (l.onclick = () => {
+        if (over) return; const i = Number(l.dataset.i);
+        if (it.a.includes(i)) { l.classList.add('hit'); $('.code', host).classList.remove('pick'); win(); }
+        else { wrong++; l.classList.remove('miss'); void l.offsetWidth; l.classList.add('miss'); KIT.sfx.no(); glowAfter2(wrong, $(`.ln[data-i="${it.a[0]}"]`, host)); }
+      }));
+    },
+
+    // จับบั๊ก
+    bug(host, it, report, st, more) {
+      let wrong = 0, phase = 0; const lines = it.code.split('\n');
+      const opts = shuffle(it.opts.map((t, k) => ({ t, ok: k === 0 })));
+      const logic = !it.err;
+      host.innerHTML = `<p class="q">🐞 โปรแกรมนี้มีบั๊ก! <b>แตะบรรทัดที่ผิด</b></p><div class="two"><div>${codeHTML(it.code, 'pick')}</div>
+        <div>${logic ? `<p class="lbl">ผลที่ได้ (ผิด)</p>${conHTML(it.got || '(ไม่แสดงอะไร)', true, 'รันแล้วได้')}<p class="lbl">ผลที่ต้องการ</p><div class="want">${esc(it.want)}</div>`
+          : `<p class="lbl">รันแล้วเกิด Error</p>${conHTML(it.err, true, 'Error')}`}
+        <div class="fixbox" hidden><p class="lbl">เลือกวิธีแก้บรรทัด ${it.line + 1}</p><div class="opts" style="grid-template-columns:1fr">${opts.map((o, k) => `<button class="opt" data-k="${k}">${esc(o.t.trimStart() === o.t ? o.t : '␣␣␣␣' + o.t.trimStart())}</button>`).join('')}</div></div>
+        <div class="okbox"></div></div></div>`;
+      $$('.code .ln', host).forEach((l) => (l.onclick = () => {
+        if (phase) return; const i = Number(l.dataset.i);
+        if (i === it.line) { phase = 1; l.classList.add('bug'); $('.code', host).classList.remove('pick'); KIT.sfx.ok(); $('.fixbox', host).hidden = false; $('.q', host).innerHTML = '🐞 เจอแล้ว! <b>เลือกวิธีแก้</b>'; }
+        else { wrong++; l.classList.remove('miss'); void l.offsetWidth; l.classList.add('miss'); KIT.sfx.no(); glowAfter2(wrong, $(`.ln[data-i="${it.line}"]`, host)); }
+      }));
+      $$('.fixbox .opt', host).forEach((b) => (b.onclick = () => {
+        if (phase !== 1) return; const o = opts[Number(b.dataset.k)];
+        if (o.ok) {
+          phase = 2; b.classList.add('right'); $$('.fixbox .opt', host).forEach((x) => (x.disabled = true)); KIT.sfx.ok();
+          const fixed = lines.map((x, j) => (j === it.line ? o.t : x)).join('\n');
+          $('.code', host).outerHTML = codeHTML(fixed); $(`.code .ln[data-i="${it.line}"]`, host).classList.add('hit');
+          $('.okbox', host).innerHTML = `<p class="lbl">รันใหม่หลังแก้ ✅</p>${conHTML(it.want, false)}`;
+          const go = report(wrong === 0, (it.err ? it.err.split(':')[0] : 'บั๊กตรรกะ') + ' บรรทัด ' + (it.line + 1));
+          fb(st, true, wrong === 0 ? 'แก้บั๊กได้ตั้งแต่ครั้งแรก!' : 'แก้บั๊กสำเร็จ', it.why, more, go);
+        } else { wrong++; b.classList.add('wrong'); b.disabled = true; KIT.sfx.no(); glowAfter2(wrong, $$('.fixbox .opt', host)[opts.findIndex((x) => x.ok)]); }
+      }));
+    },
+
+    // แก้โค้ด (เติมช่องว่าง)
+    mod(host, it, report, st, more) {
+      let wrong = 0, over = false; const chips = shuffle(it.opts.map((t, k) => ({ t, k })));
+      host.innerHTML = `<p class="q">🛠️ เติมช่อง <span class="blank" style="font-family:Consolas,monospace">?</span> ให้โปรแกรมแสดงผลตามที่ต้องการ</p><div class="two"><div><div class="codehost">${codeHTML(it.code)}</div>
+        <p class="lbl">เลือกคำไปเติม แล้วรันดู</p><div class="chips">${chips.map((c, j) => `<button class="chip" data-j="${j}">${esc(c.t)}</button>`).join('')}</div></div>
+        <div><p class="lbl">ผลลัพธ์ที่ต้องการ 🎯</p><div class="want">${esc(it.want)}</div><p class="lbl">รันแล้วได้</p><div class="conhost">${conHTML('', false)}</div></div></div>`;
+      $$('.chip', host).forEach((b) => (b.onclick = () => {
+        if (over) return; const c = chips[Number(b.dataset.j)], out = it.res[c.k], ok = c.k === 0, err = /^\w+Error/.test(out);
+        $('.codehost', host).innerHTML = codeHTML(it.code.replace('___', c.t));
+        const ln = it.code.split('\n').findIndex((l) => l.includes('___')); $(`.code .ln[data-i="${ln}"]`, host).classList.add(ok ? 'hit' : 'bug');
+        $('.conhost', host).innerHTML = conHTML(out, err || !ok, err ? 'Error' : 'รันแล้วได้');
+        if (ok) { over = true; b.classList.add('right'); KIT.sfx.ok(); const go = report(wrong === 0, it.code.split('\n')[ln].trim().replace('___', c.t)); fb(st, true, wrong === 0 ? 'แก้ได้ตั้งแต่ครั้งแรก!' : 'ได้ผลตามต้องการแล้ว', it.why, more, go); }
+        else { wrong++; b.classList.add('wrong'); b.disabled = true; KIT.sfx.no(); glowAfter2(wrong, $$('.chip', host)[chips.findIndex((x) => x.k === 0)]); }
+      }));
+    },
+  };
+
+  KIT.init({
+    title: 'Python นักสืบโค้ด', grade: 'ม.2', subject: 'วิทยาการคำนวณ', topic: 'การเขียนโปรแกรมภาษา Python (PRIMM)',
+    icon: '🐍🕵️', color: '#2E7D9A', soft: '#DDF1F7',
+    pics: [['🔮', 'ทายผล'], ['▶️', 'รันดู'], ['🔍', 'สืบโค้ด'], ['🛠️', 'แก้โค้ด'], ['🐞', 'จับบั๊ก']],
+    howto: ['Predict: อ่านโค้ดแล้วทายผลลัพธ์ก่อน จากนั้น Run ดูทีละบรรทัดว่าตัวแปรเปลี่ยนค่าอย่างไร', 'Investigate: แตะบรรทัดที่ทำหน้าที่ตามคำถาม หรือเลือกคำตอบ', 'Modify / จับบั๊ก: เลือกคำมาเติมหรือเลือกวิธีแก้ แล้วรันดูผลจริง', 'ตอบผิดลองใหม่ได้ ผิด 2 ครั้งจะมีกรอบสีเหลืองบอกใบ้'],
+    start: (st) => menu(st),
+  });
+})();
+</script>
+</body>
+</html>
