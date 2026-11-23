@@ -28,7 +28,7 @@
       const coach = UI.coach($('.cs', el), { who: o.who || 'robo', mood: 'explaining', text: r.say });
       const silBox = $('.sil', el);
       const showSil = () => { if (r.kind === 'find') silBox.innerHTML = `<div class="silhouette" aria-label="ภาพเงา"><div class="face">${A.DEV[target.art]()}</div></div>`; };
-      if (!K.audio.on) showSil();
+      showSil(); // ไม่มีเสียงพูด จึงแสดงภาพเงาเป็นคำใบ้เสมอ
       if (mode === 'practice') coach.hint(() => {
         hinted = true; showSil();
         const t = r.kind === 'find' ? 'ดูภาพเงาสีดำ แล้วหาภาพที่รูปร่างเหมือนกันนะ' : r.kind === 'odd' ? 'หาสิ่งที่ไม่ได้อยู่กับเครื่องคอมพิวเตอร์' : 'หาสิ่งที่อยู่กับเครื่องคอมพิวเตอร์';

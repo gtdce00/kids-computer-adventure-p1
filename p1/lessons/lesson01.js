@@ -153,7 +153,7 @@
   /* ---------- ③ สาธิตวิธีเล่น ---------- */
   const HAND = `<svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true"><path d="M24 6c3 0 5 2 5 5v18l2-1c2-6 9-4 9 1v1c2-4 9-3 9 2v2c2-3 8-2 8 3v13c0 8-6 14-14 14h-6c-5 0-9-2-12-6L13 43c-2-3 0-6 3-6 2 0 4 1 5 3l-2-29c0-3 2-5 5-5z" fill="#FFDCC2" stroke="#253858" stroke-width="3" stroke-linejoin="round"/></svg>`;
   const DEMO = [
-    { cap: '1. ฟังคำสั่ง หรือดูภาพเงา: แตะที่ เมาส์', x: '50%', y: '112%' },
+    { cap: '1. อ่านคำสั่งและดูภาพเงา: แตะที่ เมาส์', x: '50%', y: '112%' },
     { cap: '2. มองหาภาพที่ถูกต้องทีละภาพ', x: '12%', y: '64%' },
     { cap: '2. มองหาภาพที่ถูกต้องทีละภาพ', x: '37%', y: '64%' },
     { cap: '3. เจอแล้ว! แตะที่ภาพเมาส์', x: '62%', y: '64%', tap: true },
@@ -227,7 +227,7 @@
   function quiz(el, ctx) {
     const sid = ctx.student.student_id;
     el.innerHTML = `<div class="card narrow center"><div class="big-char">${A.char('robo', 'explaining')}</div><h2 class="mt-s" style="font-size:32px">แบบทดสอบ 5 ข้อ</h2>
-      <p class="mt-s">ไม่จำกัดเวลา ค่อย ๆ ดูภาพให้ดี ${K.audio.on ? 'ฟังคำสั่งแล้วแตะภาพ' : 'ครูอ่านคำสั่งให้ฟัง หรือดูภาพเงา'}</p><button class="btn mint mt" data-go-q>${A.ICON.play}เริ่มทดสอบ</button></div>`;
+      <p class="mt-s">ไม่จำกัดเวลา ค่อย ๆ ดูภาพให้ดี ดูภาพเงาแล้วแตะภาพที่ถูก (ครูอ่านคำสั่งให้ฟังได้)</p><button class="btn mint mt" data-go-q>${A.ICON.play}เริ่มทดสอบ</button></div>`;
     say('แบบทดสอบห้าข้อ พร้อมแล้วกดเริ่มเลย');
     $('[data-go-q]', el).onclick = () => {
       el.innerHTML = '<div class="tech-stage" id="qa"></div>';

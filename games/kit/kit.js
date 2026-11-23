@@ -29,14 +29,9 @@
     } catch (e) { /* ไม่มีเสียงก็เล่นได้ */ }
   }
   KIT.sfx = { tap: () => tone([520], 0.06, 'triangle', 0.14), ok: () => tone([660, 880], 0.11), no: () => tone([240, 190], 0.15, 'square', 0.1), win: () => tone([523, 659, 784, 1046], 0.13, 'triangle'), step: () => tone([440], 0.05, 'triangle', 0.1) };
-  let thaiVoice = null;
-  function pickVoice() { try { thaiVoice = speechSynthesis.getVoices().find((v) => /^th/i.test(v.lang)) || null; } catch (e) { thaiVoice = null; } }
-  if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
-  KIT.say = function (text) {
-    if (!soundOn || !KIT.opts.speak || !('speechSynthesis' in window) || !thaiVoice) return;
-    try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(String(text).replace(/<[^>]+>/g, '')); u.lang = 'th-TH'; u.voice = thaiVoice; u.rate = 0.95; speechSynthesis.speak(u); } catch (e) { /* ignore */ }
-  };
-  KIT.hush = () => { try { speechSynthesis.cancel(); } catch (e) { /* ignore */ } };
+  // ไม่มีเสียงพูด (ตามที่ครูกำหนด) — มีแค่เสียงประกอบ ถูก/ผิด/ชนะ
+  KIT.say = function () {};
+  KIT.hush = function () {};
 
   /* ---------- คะแนนบนหน้าจอ ---------- */
   let score = 0;

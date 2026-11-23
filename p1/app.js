@@ -108,30 +108,22 @@
   KCA.Store = Store; KCA.GUEST = GUEST;
 
   /* =========================================================
-     3) เสียง: อ่านภาษาไทย + เสียงประกอบ + โหมดภาพ
+     3) เสียงประกอบ (ไม่มีเสียงพูด) + จังหวะเวลาของคำสั่ง
      ========================================================= */
   const SND = 'kca_sound';
   const audio = { on: true, userSet: false, voice: null, ready: false, last: '' };
   try { const v = localStorage.getItem(SND); if (v !== null) { audio.on = v === '1'; audio.userSet = true; } } catch (e) { /* ignore */ }
-  function pickVoice() { if (!('speechSynthesis' in window)) return; audio.voice = speechSynthesis.getVoices().find((v) => /^th/i.test(v.lang)) || null; }
-  if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
-  setTimeout(() => { audio.ready = true; if (!audio.userSet && !audio.voice) { audio.on = false; refreshSoundUi(); } }, 1500);
+  audio.ready = true;
   let spT;
   function say(text, onend) {
     audio.last = text;
     clearTimeout(spT);
     const g = KCA.gen;
     const done = () => { if (g === KCA.gen && onend) onend(); };
-    if (!audio.on || !('speechSynthesis' in window)) { spT = setTimeout(done, 600 + text.length * 60); return; }
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'th-TH'; u.rate = 0.9; u.pitch = 1.1; if (audio.voice) u.voice = audio.voice;
-    let fired = false; const fin = () => { if (!fired) { fired = true; clearTimeout(spT); done(); } };
-    u.onend = fin; u.onerror = fin;
-    spT = setTimeout(fin, 2500 + text.length * 160);
-    speechSynthesis.speak(u);
+    // ไม่มีเสียงพูด: แสดงข้อความในกรอบคำสั่ง แล้วรอเวลาอ่านก่อนไปต่อ
+    spT = setTimeout(done, 900 + text.length * 70);
   }
-  function stopSpeech() { clearTimeout(spT); if ('speechSynthesis' in window) speechSynthesis.cancel(); }
+  function stopSpeech() { clearTimeout(spT); }
   let actx;
   function tone(fs, d, type, vol) {
     if (!audio.on) return;
@@ -142,7 +134,7 @@
   }
   const sfx = { tap: () => tone([520], 0.06, 'triangle', 0.15), ok: () => tone([660, 880], 0.11), no: () => tone([240, 190], 0.15, 'square', 0.12), win: () => tone([523, 659, 784, 1046], 0.13, 'triangle'), star: () => tone([880, 1175], 0.09, 'triangle') };
   function setSound(on) { audio.on = on; audio.userSet = true; try { localStorage.setItem(SND, on ? '1' : '0'); } catch (e) { /* ignore */ } if (!on) stopSpeech(); refreshSoundUi(); }
-  function refreshSoundUi() { $$('[data-sound]').forEach((b) => { b.innerHTML = audio.on ? A.ICON.vol : A.ICON.mute; b.setAttribute('aria-label', audio.on ? 'ปิดเสียง' : 'เปิดเสียง'); }); $$('[data-repeat]').forEach((b) => b.classList.toggle('hidden', !audio.on)); const n = $('#modeNote'); if (n) n.classList.toggle('hidden', audio.on || !audio.ready); }
+  function refreshSoundUi() { $$('[data-sound]').forEach((b) => { b.innerHTML = audio.on ? A.ICON.vol : A.ICON.mute; b.setAttribute('aria-label', audio.on ? 'ปิดเสียง' : 'เปิดเสียง'); }); }
   Object.assign(KCA, { say, stopSpeech, sfx, audio, setSound });
 
   /* =========================================================
@@ -198,10 +190,9 @@
     },
     // ตัวละครพูด + กรอบคำสั่ง + ฟังซ้ำ + คำใบ้
     coach(el, o) {
-      el.innerHTML = `<div class="coach"><div class="who-c"></div><div class="bubble"><p aria-live="polite"></p><button class="ibtn sky ${audio.on ? '' : 'hidden'}" data-repeat aria-label="ฟังอีกครั้ง">${A.ICON.vol}</button><button class="ibtn sun hidden" data-hint aria-label="คำใบ้">${A.ICON.bulb}</button></div></div>`;
+      el.innerHTML = `<div class="coach"><div class="who-c"></div><div class="bubble"><p aria-live="polite"></p><button class="ibtn sun hidden" data-hint aria-label="คำใบ้">${A.ICON.bulb}</button></div></div>`;
       const who = $('.who-c', el), p = $('p', el), hb = $('[data-hint]', el);
       let cur = {};
-      $('[data-repeat]', el).onclick = () => say(p.textContent);
       const api = {
         set(text, mood, w, speak) {
           if (w !== undefined || mood !== undefined) { const nw = w || cur.who || 'robo', nm = mood || cur.mood || 'explaining'; if (nw !== cur.who || nm !== cur.mood) { who.innerHTML = A.char(nw, nm); cur = { who: nw, mood: nm }; } }
@@ -276,8 +267,8 @@
         <li class="step">3. ทำตามทีละขั้น: แนะนำ → ดูภาพ → ดูวิธีเล่น → เล่นเกม → ทดสอบ</li>
         <li class="step">4. ได้ดาว เหรียญ และ Badge เมื่อผ่านด่าน ดูได้ที่ <b>ผลการเรียน</b> และ <b>ภารกิจ</b></li>
       </ol>
-      <p class="mt-s"><b>ปุ่มช่วยเหลือ:</b> ลำโพงสีฟ้า = ฟังคำสั่งอีกครั้ง · หลอดไฟสีเหลือง = คำใบ้จากโทโน่ · ปุ่มลำโพงมุมขวาบน = เปิด/ปิดเสียง</p>
-      <p class="mt-s muted">สำหรับครู: ถ้าเครื่องไม่มีเสียงพูดภาษาไทย เว็บจะเปลี่ยนเป็นโหมดภาพให้อัตโนมัติ (คำใบ้เป็นภาพเงา ✓/✗ ตัวใหญ่) ครูอ่านคำสั่งในกรอบให้นักเรียนฟังได้ ถ้าต้องการเสียงพูด ให้ต่อลำโพงและเปิดด้วย Microsoft Edge</p>`, { wide: true });
+      <p class="mt-s"><b>ปุ่มช่วยเหลือ:</b> หลอดไฟสีเหลือง = คำใบ้จากโทโน่ · ปุ่มลำโพงมุมขวาบน = เปิด/ปิดเสียงประกอบ</p>
+      <p class="mt-s muted">สำหรับครู: เกมไม่มีเสียงพูด คำสั่งแสดงเป็นตัวหนังสือในกรอบคำพูดและมีภาพเงาช่วย ครูอ่านคำสั่งให้นักเรียนที่ยังอ่านไม่คล่องฟังได้</p>`, { wide: true });
   }
 
   /* =========================================================
@@ -347,7 +338,6 @@
       <h1 class="wordmark"><span class="w1">KIDS</span><span class="w2">COMPUTER</span><span class="w3">ADVENTURE ป.1</span></h1>
       <p class="ribbon">ผจญภัยโลกคอมพิวเตอร์กับน้องโรโบ</p>
       <div class="hero-cta"><button class="btn big sun" data-start>${A.ICON.play}เริ่มผจญภัย</button></div>
-      <p id="modeNote" class="mt-s ${audio.on || !audio.ready ? 'hidden' : ''}" style="background:#fff;border-radius:14px;padding:8px 14px;font-size:15px;display:inline-block">โหมดภาพ: เครื่องนี้ปิดเสียงหรือไม่มีเสียงพูดภาษาไทย ครูกดปุ่มลำโพงมุมขวาบนเพื่อเปิดเสียงได้</p>
     </div>
     <div class="kids">
       <button class="float d3" data-talk="tono" aria-label="โทโน่">${A.char('tono', 'happy')}</button>

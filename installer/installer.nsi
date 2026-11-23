@@ -8,7 +8,7 @@ Unicode true
 !define APPNAME   "ห้องเกมการศึกษา ครูคอม"
 !define OLDNAME   "KIDS COMPUTER ADVENTURE ป.1"
 !define APPID     "KidsComputerAdventureP1"
-!define VERSION   "2.1.0"
+!define VERSION   "2.1.1"
 !define SITEURL   "https://gtdce00.github.io/kids-computer-adventure-p1/"
 !define PUBLISHER "ครูชลหิรัณย์ พลศักดิ์ โรงเรียนบ้านนาอ่าง"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPID}"
