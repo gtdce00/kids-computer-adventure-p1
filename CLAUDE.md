@@ -7,6 +7,8 @@
    ตามลำดับ art.js → app.js → teacher.js → games.js → lessons/lessonXX.js
    แล้วเรียกไฟล์ผลลัพธ์ว่า `KidsComputerAdventure.html`
 3. อัปเดต `download/KidsComputerAdventure-P1.zip` (KidsComputerAdventure.html, INSTALL-Desktop-Icon.vbs, icon.ico, README.txt)
-4. commit แล้ว push ขึ้น `main` ของ gtdce00/kids-computer-adventure-p1 (GitHub Pages จะอัปเดตเว็บตามเอง)
+4. สร้างโปรแกรมติดตั้งใหม่: `makensis installer/installer.nsi` → `download/KidsComputerAdventure-Setup.exe`
+   (เมื่อมีการเปลี่ยนแปลงสำคัญ ให้เพิ่ม VERSION ใน installer.nsi)
+5. commit แล้ว push ขึ้น `main` ของ gtdce00/kids-computer-adventure-p1 (GitHub Pages จะอัปเดตเว็บตามเอง)
 
 ถ้ามีบทเรียนใหม่ ให้เพิ่ม `<script src="lessons/lessonXX.js">` ใน index.html และเพิ่มในลำดับการรวมไฟล์ของ build.py ด้วย
