@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ทายผลลัพธ์ของโปรแกรม</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .script{display:inline-flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;margin:10px auto 6px;font:500 17px/1.3 'Mitr';color:#fff}
+  .b{padding:7px 14px;border-radius:8px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18);white-space:nowrap}
+  .b.hat{border-radius:18px 18px 8px 8px;padding-top:10px}
+  .ev{background:#FFBF00;color:#3d2b00}.var{background:#FF8C1A}.ctl{background:#FFAB19;color:#3d2b00}.look{background:#9966FF}.mot{background:#4C97FF}.snd{background:#CF63CF}.op{background:#59C059}
+  .c{display:flex;flex-direction:column;align-items:flex-start}
+  .c .in{border-left:16px solid #FFAB19;padding:3px 0 3px 4px;display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+  .c .cend{width:120px;height:14px;background:#FFAB19;border-radius:0 0 8px 8px}
+  .v{display:inline-block;background:#fff;color:var(--ink);border-radius:999px;padding:0 9px;margin:0 2px;font-weight:500}
+  .ask{display:block;margin-top:6px}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.5 คอมพิวเตอร์ ว15201 · สัปดาห์ที่ 2 ทำนายผลลัพธ์จากปัญหาอย่างง่าย (ใช้บล็อกแบบ Scratch) — ไม่เก็บข้อมูลผู้เล่น */
+(function () {
+  const v = (x) => `<span class="v">${x}</span>`;
+  const B = (cls, html) => `<div class="b ${cls}">${html}</div>`;
+  const FLAG = B('ev hat', 'เมื่อคลิก 🚩');
+  const REP = (n, inner) => `<div class="c"><div class="b ctl">ทำซ้ำ ${v(n)} ครั้ง</div><div class="in">${inner}</div><div class="cend"></div></div>`;
+  const IF = (cond, a, b) => `<div class="c"><div class="b ctl">ถ้า ${cond} แล้ว</div><div class="in">${a}</div>${b !== undefined ? `<div class="b ctl">มิฉะนั้น</div><div class="in">${b}</div>` : ''}<div class="cend"></div></div>`;
+  const S = (...blocks) => `<span class="script">${FLAG}${blocks.join('')}</span>`;
+  const ask = (t) => `<span class="ask">${t}</span>`;
+  const ROUNDS = [
+    { q: S(B('var', `ตั้ง ${v('คะแนน')} เป็น ${v(0)}`), B('var', `เปลี่ยน ${v('คะแนน')} ทีละ ${v(5)}`), B('var', `เปลี่ยน ${v('คะแนน')} ทีละ ${v(5)}`), B('look', `พูด ${v('คะแนน')}`)) + ask('ตัวละครจะพูดว่าอะไร?'), choices: ['10', '5', '0', '55'], answer: 0, explain: 'เริ่มที่ 0 แล้วเพิ่ม 5 สองครั้ง: 0 + 5 + 5 = 10', short: 'คะแนน 0 + 5 + 5' },
+    { q: S(B('var', `ตั้ง ${v('x')} เป็น ${v(1)}`), REP(3, B('var', `เปลี่ยน ${v('x')} ทีละ ${v(2)}`)), B('look', `พูด ${v('x')}`)) + ask('ตัวละครจะพูดว่าอะไร?'), choices: ['7', '6', '3', '5'], answer: 0, explain: 'วนซ้ำ 3 ครั้ง เพิ่มครั้งละ 2 รวมเพิ่ม 6: 1 + 6 = 7', short: 'วนซ้ำเพิ่ม x' },
+    { q: S(B('var', `ตั้ง ${v('อายุ')} เป็น ${v(11)}`), IF(`${v('อายุ')} > ${v(10)}`, B('look', `พูด ${v('โตแล้ว')}`), B('look', `พูด ${v('ยังเด็ก')}`))) + ask('ตัวละครจะพูดว่าอะไร?'), choices: ['โตแล้ว', 'ยังเด็ก', 'พูดทั้งสองคำ', 'ไม่พูดอะไร'], answer: 0, explain: '11 มากกว่า 10 เงื่อนไขเป็นจริง จึงทำคำสั่งใน "ถ้า" คือพูดว่า โตแล้ว', short: 'ถ้า อายุ > 10' },
+    { q: S(B('var', `ตั้ง ${v('n')} เป็น ${v(10)}`), REP(4, B('var', `เปลี่ยน ${v('n')} ทีละ ${v(-2)}`)), B('look', `พูด ${v('n')}`)) + ask('ตัวละครจะพูดว่าอะไร?'), choices: ['2', '8', '6', '-8'], answer: 0, explain: 'ลดลงครั้งละ 2 จำนวน 4 ครั้ง รวมลด 8: 10 − 8 = 2', short: 'วนซ้ำลด n' },
+    { q: S(B('mot', `ไปที่ x: ${v(0)} y: ${v(0)}`), REP(5, B('mot', `เคลื่อนที่ ${v(10)} ก้าว`))) + ask('ตัวละครหันไปทางขวา สุดท้ายอยู่ที่ x เท่าไร?'), choices: ['50', '10', '15', '5'], answer: 0, explain: 'เคลื่อนที่ 10 ก้าว 5 ครั้ง = 50 ก้าว จาก x = 0 จึงไปอยู่ที่ x = 50', short: 'เคลื่อนที่ 10 ก้าว 5 ครั้ง' },
+    { q: S(B('var', `ตั้ง ${v('a')} เป็น ${v(3)}`), B('var', `ตั้ง ${v('b')} เป็น <span class="b op" style="display:inline-block;padding:2px 8px">${v('a')} + ${v(4)}</span>`), B('look', `พูด ${v('b')}`)) + ask('ตัวละครจะพูดว่าอะไร?'), choices: ['7', '34', '4', '3'], answer: 0, explain: 'b = a + 4 และ a = 3 จึงได้ 3 + 4 = 7', short: 'b = a + 4' },
+    { q: S(REP(2, REP(3, B('snd', `เล่นเสียง ${v('เหมียว')}`)))) + ask('จะได้ยินเสียงเหมียวกี่ครั้ง?'), choices: ['6 ครั้ง', '5 ครั้ง', '3 ครั้ง', '2 ครั้ง'], answer: 0, explain: 'วนซ้ำซ้อนกัน: รอบนอก 2 รอบ × รอบใน 3 ครั้ง = 6 ครั้ง', short: 'วนซ้ำซ้อน 2 × 3' },
+    { q: S(B('var', `ตั้ง ${v('คะแนน')} เป็น ${v(7)}`), IF(`${v('คะแนน')} = ${v(10)}`, B('look', `พูด ${v('ชนะแล้ว!')}`), B('look', `พูด ${v('สู้ต่อ')}`))) + ask('ตัวละครจะพูดว่าอะไร?'), choices: ['สู้ต่อ', 'ชนะแล้ว!', 'พูดทั้งสองคำ', '7'], answer: 0, explain: '7 ไม่เท่ากับ 10 เงื่อนไขเป็นเท็จ จึงทำคำสั่งใน "มิฉะนั้น"', short: 'ถ้า คะแนน = 10' },
+    { q: S(B('mot', `ไปที่ x: ${v(0)} y: ${v(0)}`), B('mot', `หันไปทิศทาง ${v(90)} (ขวา)`), B('mot', `เคลื่อนที่ ${v(20)} ก้าว`), B('mot', `หัน ↻ ${v(180)} องศา`), B('mot', `เคลื่อนที่ ${v(20)} ก้าว`)) + ask('สุดท้ายตัวละครอยู่ที่ x เท่าไร?'), choices: ['0', '40', '20', '180'], answer: 0, explain: 'ไปทางขวา 20 แล้วหันกลับ 180 องศา เดินกลับ 20 จึงกลับมาที่ x = 0', short: 'เดินไปแล้วหันกลับ' },
+    { q: S(B('var', `ตั้ง ${v('ดาว')} เป็น ${v(0)}`), REP(3, B('var', `เปลี่ยน ${v('ดาว')} ทีละ ${v(1)}`) + IF(`${v('ดาว')} = ${v(2)}`, B('look', `พูด ${v('ครึ่งทาง!')}`)))) + ask('ตัวละครพูดว่า "ครึ่งทาง!" กี่ครั้ง?'), choices: ['1 ครั้ง', '3 ครั้ง', '2 ครั้ง', 'ไม่พูดเลย'], answer: 0, explain: 'ดาวเป็น 1, 2, 3 ตามรอบ เงื่อนไข ดาว = 2 เป็นจริงแค่รอบที่ 2 จึงพูด 1 ครั้ง', short: 'ถ้าอยู่ในวนซ้ำ' },
+  ];
+  KIT.init({
+    title: 'ทายผลลัพธ์ของโปรแกรม', grade: 'ป.5', subject: 'คอมพิวเตอร์ ว15201', topic: 'ทำนายผลลัพธ์จากปัญหาอย่างง่าย',
+    icon: '🧠🧱', color: '#FF8C1A', soft: '#FFEBD6',
+    howto: ['อ่านบล็อกคำสั่งแบบ Scratch จากบนลงล่าง', 'คิดตามทีละบล็อก (ลองจดค่าตัวแปรในกระดาษ) แล้วเลือกผลลัพธ์', 'ทั้งหมด 8 ข้อ มีทั้งตัวแปร ทำซ้ำ และเงื่อนไข'],
+    start: (st) => KIT.mcq(st, { rounds: ROUNDS, count: 8, lesson: 'การ<b>ทำนายผลลัพธ์</b> ทำได้โดยไล่คำสั่งทีละบล็อกตามลำดับ จดค่าของ<b>ตัวแปร</b>ทุกครั้งที่เปลี่ยน · <b>ทำซ้ำ</b> = ทำคำสั่งข้างในตามจำนวนรอบ · <b>ถ้า...แล้ว</b> = ทำเมื่อเงื่อนไขเป็นจริง ถ้าเป็นเท็จจะทำ <b>มิฉะนั้น</b>' }),
+  });
+})();
+</script>
+</body>
+</html>

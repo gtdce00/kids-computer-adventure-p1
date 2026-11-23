@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>นักสืบบั๊ก</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .play{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:start}
+  @media (max-width:760px){.play{grid-template-columns:1fr}}
+  .board{--s:clamp(50px,10vw,66px);position:relative;display:grid;grid-template-columns:repeat(5,var(--s));grid-template-rows:repeat(5,var(--s));gap:4px;padding:8px;background:#C9D6FF;border:var(--b);border-radius:20px;box-shadow:var(--pop);margin:0 auto}
+  .cell{background:#EEF2FF;border-radius:10px;display:grid;place-items:center;font-size:calc(var(--s)*.58)}
+  .cell.path{background:#DDF6E8}.cell.trail{background:#FFF1B8}
+  .robot{position:absolute;left:8px;top:8px;width:var(--s);height:var(--s);display:grid;place-items:center;font-size:calc(var(--s)*.68);transition:transform .35s ease;z-index:2}
+  .robot.bump{animation:shake .4s}
+  .code{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .code li{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:14px;background:#fff;border:var(--b);cursor:pointer;font-size:18px}
+  .code li .n{width:28px;height:28px;border-radius:8px;background:var(--c-soft);display:grid;place-items:center;font:700 15px/1 'Mali';flex:none}
+  .code li .ar{font:700 26px/1 'Mali';width:30px;text-align:center}
+  .code li.now{background:var(--sun)}
+  .code li.picked{outline:4px solid var(--grape)}
+  .code li.fixed{background:var(--ok-soft);border-color:var(--ok)}
+  .code li.nope{background:var(--no-soft);animation:shake .4s}
+  .fix{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+  .fix button{width:60px;height:60px;border-radius:14px;background:#fff;border:var(--b);box-shadow:3px 3px 0 var(--ink);font:700 30px/1 'Mali'}
+  .legend{font-size:15px;color:var(--ink2);margin-top:8px}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.3 คอมพิวเตอร์ ว13201 · สัปดาห์ที่ 8 การตรวจหาข้อผิดพลาดของโปรแกรม — ไม่เก็บข้อมูลผู้เล่น */
+(function () {
+  const { $, $$ } = KIT;
+  const DIR = { U: [-1, 0, '↑', 'เดินขึ้น'], D: [1, 0, '↓', 'เดินลง'], L: [0, -1, '←', 'เดินซ้าย'], R: [0, 1, '→', 'เดินขวา'] };
+  const LEVELS = [
+    { start: [4, 0], good: ['R', 'R', 'U', 'U'], bug: 2, wrong: 'L' },
+    { start: [4, 0], good: ['U', 'U', 'U', 'R', 'R'], bug: 3, wrong: 'D' },
+    { start: [4, 0], good: ['R', 'U', 'R', 'U', 'R', 'U'], bug: 4, wrong: 'U' },
+    { start: [4, 0], good: ['U', 'R', 'R', 'U', 'U', 'R'], bug: 1, wrong: 'L' },
+    { start: [4, 0], good: ['R', 'R', 'R', 'U', 'U', 'L', 'U'], bug: 6, wrong: 'D' },
+  ];
+  let li = 0, firstTry = [];
+  const walk = (start, prog) => { const cells = []; let [r, c] = start; for (const d of prog) { r += DIR[d][0]; c += DIR[d][1]; cells.push([r, c]); } return cells; };
+
+  function level(st) {
+    const L = LEVELS[li];
+    const goodPath = walk(L.start, L.good), goal = goodPath[goodPath.length - 1];
+    let prog = L.good.slice(); prog[L.bug] = L.wrong;
+    let mistakes = 0, picked = null, running = false, solved = false;
+    const onPath = (r, c) => goodPath.some(([a, b]) => a === r && b === c);
+    st.innerHTML = `<section class="card">
+      ${KIT.dots(LEVELS.length, li, firstTry)}<p class="qtag">คดีที่ ${li + 1} / ${LEVELS.length}</p>
+      <div class="prompt">โปรแกรมนี้มี <b>บั๊ก 1 จุด</b> 🐞 หุ่นยนต์เลยไปไม่ถึงธง 🚩 หาคำสั่งที่ผิดแล้วแก้ให้ถูก</div>
+      <div class="play">
+        <div><div class="board" id="board">${Array.from({ length: 25 }, (_, k) => { const r = Math.floor(k / 5), c = k % 5; return `<div class="cell ${onPath(r, c) ? 'path' : ''}" data-rc="${r}-${c}">${goal[0] === r && goal[1] === c ? '🚩' : ''}</div>`; }).join('')}<div class="robot" id="robot">🤖</div></div>
+          <p class="legend">ช่องสีเขียว = ทางที่หุ่นยนต์ควรเดิน</p></div>
+        <div>
+          <p class="head" style="font-size:19px">โปรแกรม (แตะคำสั่งที่คิดว่าผิด)</p>
+          <ol class="code" id="code"></ol>
+          <div class="fix hidden" id="fix"><span style="width:100%;text-align:center">เปลี่ยนเป็นคำสั่งไหน?</span>${Object.keys(DIR).map((d) => `<button data-d="${d}" aria-label="${DIR[d][3]}">${DIR[d][2]}</button>`).join('')}</div>
+          <div class="row mt"><button class="btn white" id="run">▶ ทดลองรันโปรแกรม</button></div>
+        </div>
+      </div><div class="fbhost"></div></section>`;
+    KIT.say('โปรแกรมนี้มีบั๊กหนึ่งจุด หาคำสั่งที่ผิดแล้วแก้ให้ถูก');
+    const robot = $('#robot'), board = $('#board');
+    const cs = () => $('.cell', board).getBoundingClientRect().width + 4;
+    const place = (r, c) => { robot.style.transform = `translate(${c * cs()}px,${r * cs()}px)`; };
+    const reset = () => { $$('.trail', board).forEach((x) => x.classList.remove('trail')); robot.style.transition = 'none'; place(...L.start); robot.offsetWidth; robot.style.transition = ''; };
+    const drawCode = () => {
+      $('#code').innerHTML = prog.map((d, k) => `<li data-k="${k}" class="${picked === k ? 'picked' : ''} ${solved && k === L.bug ? 'fixed' : ''}"><span class="n">${k + 1}</span><span class="ar">${DIR[d][2]}</span>${DIR[d][3]} 1 ช่อง</li>`).join('');
+      $$('#code li', st).forEach((li_) => (li_.onclick = () => pick(Number(li_.dataset.k))));
+    };
+    const pick = (k) => {
+      if (running || solved) return;
+      $('.fbhost', st).innerHTML = '';
+      if (k !== L.bug) {
+        mistakes++; const el = $(`#code li[data-k="${k}"]`); el.classList.add('nope');
+        KIT.feedback($('.fbhost', st), false, `คำสั่งที่ ${k + 1} ถูกต้องแล้ว`, 'ลองกด ▶ ทดลองรัน ดูว่าหุ่นยนต์เริ่มออกนอกทางสีเขียวที่คำสั่งไหน');
+        return;
+      }
+      picked = k; KIT.sfx.tap(); drawCode(); $('#fix').classList.remove('hidden');
+    };
+    $$('#fix button', st).forEach((b) => (b.onclick = () => {
+      if (picked === null) return;
+      const d = b.dataset.d;
+      if (d === L.good[picked]) {
+        prog[picked] = d; solved = true; picked = null; $('#fix').classList.add('hidden'); drawCode();
+        firstTry[li] = mistakes === 0; KIT.addScore(mistakes === 0 ? 20 : 10);
+        run(true);
+      } else {
+        mistakes++;
+        KIT.feedback($('.fbhost', st), false, `${DIR[d][2]} ยังไม่ใช่`, 'ดูทางสีเขียว ตรงคำสั่งนี้หุ่นยนต์ควรเดินไปทางไหน?');
+      }
+    }));
+    function run(afterFix) {
+      if (running) return; running = true; reset(); $('.fbhost', st).innerHTML = '';
+      let [r, c] = L.start, k = 0;
+      const step = () => {
+        $$('#code li', st).forEach((x, n) => x.classList.toggle('now', n === k));
+        const nr = r + DIR[prog[k]][0], nc = c + DIR[prog[k]][1];
+        if (nr < 0 || nr > 4 || nc < 0 || nc > 4) {
+          robot.classList.add('bump'); setTimeout(() => robot.classList.remove('bump'), 400); running = false;
+          KIT.feedback($('.fbhost', st), false, 'หุ่นยนต์ออกนอกแผนที่ที่คำสั่งที่ ' + (k + 1), 'นี่คือเบาะแส! คำสั่งที่ผิดอาจอยู่ตรงนี้หรือก่อนหน้านี้');
+          return;
+        }
+        r = nr; c = nc; place(r, c); KIT.sfx.step();
+        const cell = $(`[data-rc="${r}-${c}"]`, board); if (cell) cell.classList.add('trail');
+        k++;
+        if (k < prog.length) { KIT.later(step, 420); return; }
+        KIT.later(() => {
+          running = false; $$('#code li', st).forEach((x) => x.classList.remove('now'));
+          if (r === goal[0] && c === goal[1]) {
+            KIT.feedback($('.fbhost', st), true, 'แก้บั๊กสำเร็จ! หุ่นยนต์ถึงธงแล้ว', `บั๊กอยู่ที่คำสั่งที่ ${L.bug + 1} ต้องเป็น ${DIR[L.good[L.bug]][2]} ${DIR[L.good[L.bug]][3]}`, li + 1 < LEVELS.length ? 'คดีต่อไป →' : 'ดูผล →', () => { li++; li < LEVELS.length ? level(st) : finish(); });
+          } else KIT.feedback($('.fbhost', st), false, 'หุ่นยนต์ไปไม่ถึงธง 🚩', 'ดูว่าหุ่นยนต์เริ่มเดินออกจากทางสีเขียวตอนคำสั่งไหน แล้วแตะคำสั่งนั้น');
+        }, 380);
+      };
+      KIT.later(step, 250);
+    }
+    $('#run').onclick = () => run(false);
+    reset(); drawCode();
+    window.onresize = () => { if (!running) reset(); };
+  }
+
+  function finish() {
+    const correct = firstTry.filter(Boolean).length;
+    KIT.end({ correct, total: LEVELS.length, label: 'จับบั๊กได้ตั้งแต่ครั้งแรก', review: LEVELS.map((L, k) => ({ ok: firstTry[k], text: `คดีที่ ${k + 1} บั๊กอยู่ที่คำสั่งที่ ${L.bug + 1}` })),
+      lesson: '<b>บั๊ก (Bug)</b> คือ ข้อผิดพลาดในโปรแกรม การหาและแก้บั๊ก เรียกว่า <b>ดีบัก (Debug)</b> วิธีหาบั๊ก: ทดลองรันโปรแกรม ดูว่าผลลัพธ์เริ่มผิดตรงไหน แล้วตรวจคำสั่งทีละบรรทัด' });
+  }
+
+  KIT.init({
+    title: 'นักสืบบั๊ก', grade: 'ป.3', subject: 'คอมพิวเตอร์ ว13201', topic: 'การตรวจหาข้อผิดพลาดของโปรแกรม',
+    icon: '🕵️🐞', color: '#1FB5B0', soft: '#D5F4F2', speak: true,
+    howto: ['กด ▶ ทดลองรัน ดูหุ่นยนต์เดินตามโปรแกรม', 'สังเกตว่าหุ่นยนต์ออกนอกทางสีเขียวตอนคำสั่งไหน แล้วแตะคำสั่งนั้น', 'เลือกลูกศรที่ถูก โปรแกรมจะรันใหม่ให้ดู ทั้งหมด 5 คดี'],
+    start: (st) => { li = 0; firstTry = []; level(st); },
+  });
+})();
+</script>
+</body>
+</html>

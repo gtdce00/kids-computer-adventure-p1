@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ฝึกเมาส์ เก็บผลไม้ใส่ตะกร้า</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .field{position:relative;height:min(52vh,420px);border:3px dashed var(--line);border-radius:22px;background:linear-gradient(#E9F7FF,#F3FFEA);overflow:hidden}
+  .fruit{position:absolute;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;background:#fff;border:var(--b);box-shadow:3px 3px 0 var(--ink);font-size:56px;display:grid;place-items:center;animation:bob 2.4s ease-in-out infinite}
+  .fruit:hover{transform:scale(1.08)}
+  .fruit.gone{animation:poof .35s forwards;pointer-events:none}
+  @keyframes bob{50%{translate:0 -8px}}
+  @keyframes poof{to{transform:scale(1.6);opacity:0}}
+  .left{font:700 20px/1 'Mali';text-align:center;margin-top:12px}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.1 คอมพิวเตอร์ ว11201 · สัปดาห์ที่ 3 ฝึกจับและใช้เมาส์ (คลิกและลาก) — ไม่เก็บข้อมูลผู้เล่น */
+(function () {
+  const { $, $$, shuffle } = KIT;
+  const FRUITS = [['🍎', 'แอปเปิล'], ['🍌', 'กล้วย'], ['🍇', 'องุ่น'], ['🍉', 'แตงโม'], ['🍊', 'ส้ม'], ['🍓', 'สตรอว์เบอร์รี'], ['🍍', 'สับปะรด'], ['🥭', 'มะม่วง']];
+  const OTHERS = [['⚽', 'ลูกบอล'], ['🧸', 'ตุ๊กตาหมี'], ['👟', 'รองเท้า'], ['🚗', 'รถของเล่น'], ['📚', 'หนังสือ'], ['✏️', 'ดินสอ']];
+  let correct = 0, total = 0, review = [];
+
+  // ด่าน 1: คลิก
+  function level1(st) {
+    const items = shuffle(FRUITS).slice(0, 6);
+    const cells = shuffle([...Array(12).keys()]).slice(0, 6);
+    let left = items.length;
+    st.innerHTML = `<section class="card">
+      <p class="qtag">ด่าน 1 / 3 · คลิก</p>
+      <div class="prompt">ชี้เมาส์ไปที่ผลไม้ แล้ว <b>คลิก</b> (กดปุ่มซ้าย 1 ครั้ง) ให้ครบทุกลูก</div>
+      <div class="field" id="f">${items.map(([e, n], k) => { const c = cells[k], x = 14 + (c % 4) * 24, y = 20 + Math.floor(c / 4) * 30; return `<button class="fruit" style="left:${x}%;top:${y}%;animation-delay:${-k * 0.4}s" aria-label="${n}">${e}</button>`; }).join('')}</div>
+      <p class="left" id="left">เหลือ ${left} ลูก</p><div class="fbhost"></div></section>`;
+    KIT.say('ด่านที่หนึ่ง คลิกที่ผลไม้ให้ครบทุกลูก');
+    $$('.fruit', st).forEach((b) => (b.onclick = () => {
+      b.classList.add('gone'); KIT.sfx.ok(); KIT.addScore(5); left--;
+      $('#left').textContent = left ? `เหลือ ${left} ลูก` : 'เก็บครบแล้ว!';
+      if (!left) { correct += 6; total += 6; review.push({ ok: true, text: 'ด่าน 1 คลิกผลไม้ครบ 6 ลูก' });
+        KIT.feedback($('.fbhost', st), true, 'เก่งมาก! คลิกครบแล้ว', 'การคลิก คือ กดปุ่มซ้ายของเมาส์ 1 ครั้งแล้วปล่อย', 'ไปด่าน 2 →', () => level2(st)); }
+    }));
+  }
+
+  // ด่าน 2: ลากใส่ตะกร้า
+  function level2(st) {
+    const items = shuffle(FRUITS).slice(0, 6).map(([icon, name]) => ({ icon, name, bin: 'basket', why: 'กดค้าง ลาก แล้วปล่อยในตะกร้า' }));
+    KIT.sortGame(st, {
+      tag: 'ด่าน 2 / 3 · ลากและวาง',
+      prompt: 'กดปุ่มซ้ายค้างไว้ที่ผลไม้ <b>ลาก</b> ไปที่ตะกร้า แล้วปล่อยนิ้ว',
+      items, bins: [{ id: 'basket', label: 'ตะกร้าผลไม้', icon: '🧺', color: '#2FBF71' }],
+      onDone: (c, t, r) => { correct += c; total += t; review.push({ ok: c === t, text: `ด่าน 2 ลากผลไม้ใส่ตะกร้า ${c}/${t}` }); level3(st); },
+    });
+  }
+
+  // ด่าน 3: ลากแยกผลไม้กับของเล่น
+  function level3(st) {
+    const items = shuffle(FRUITS).slice(0, 5).map(([icon, name]) => ({ icon, name, bin: 'fruit', why: name + ' เป็นผลไม้ ใส่ตะกร้า' }))
+      .concat(shuffle(OTHERS).slice(0, 3).map(([icon, name]) => ({ icon, name, bin: 'box', why: name + ' ไม่ใช่ผลไม้ ใส่กล่อง' })));
+    KIT.sortGame(st, {
+      tag: 'ด่าน 3 / 3 · ลากแยกให้ถูก',
+      prompt: 'ลากผลไม้ใส่ <b>ตะกร้า</b> · ลากของอื่นใส่ <b>กล่อง</b>',
+      items,
+      bins: [{ id: 'fruit', label: 'ผลไม้', icon: '🧺', color: '#2FBF71' }, { id: 'box', label: 'ไม่ใช่ผลไม้', icon: '📦', color: '#FF9F45' }],
+      hint: (it) => it.bin === 'fruit' ? it.name + ' กินได้ เป็นผลไม้นะ' : it.name + ' กินไม่ได้ ไม่ใช่ผลไม้',
+      onDone: (c, t) => { correct += c; total += t; review.push({ ok: c === t, text: `ด่าน 3 แยกผลไม้กับของอื่น ${c}/${t}` });
+        KIT.end({ correct, total, label: 'ทำถูกครั้งแรก', review, lesson: 'จับเมาส์ให้ฝ่ามือวางบนเมาส์ นิ้วชี้อยู่ปุ่มซ้าย · <b>คลิก</b> = กดปุ่มซ้าย 1 ครั้ง · <b>ลากและวาง</b> = กดปุ่มซ้ายค้าง เลื่อนเมาส์ แล้วปล่อย' }); },
+    });
+  }
+
+  KIT.init({
+    title: 'ฝึกเมาส์ เก็บผลไม้ใส่ตะกร้า', grade: 'ป.1', subject: 'คอมพิวเตอร์ ว11201', topic: 'ฝึกจับและใช้เมาส์',
+    icon: '🖱️🍎', color: '#2FBF71', soft: '#DDF6E8', speak: true,
+    howto: ['จับเมาส์ วางนิ้วชี้ที่ปุ่มซ้าย', 'ด่าน 1 คลิกเก็บผลไม้', 'ด่าน 2–3 กดค้าง ลากผลไม้ไปวางในตะกร้า (หรือแตะผลไม้ แล้วแตะตะกร้า)'],
+    start: (st) => { correct = 0; total = 0; review = []; level1(st); },
+  });
+})();
+</script>
+</body>
+</html>

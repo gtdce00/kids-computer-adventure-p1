@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>หุ่นยนต์เดินตามลูกศร</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .play{display:grid;grid-template-columns:auto minmax(0,1fr);gap:22px;align-items:start}
+  @media (max-width:760px){.play{grid-template-columns:1fr}}
+  .board{--s:clamp(52px,11vw,72px);position:relative;display:grid;grid-template-columns:repeat(5,var(--s));grid-template-rows:repeat(5,var(--s));gap:4px;padding:8px;background:#B9E3A8;border:var(--b);border-radius:20px;box-shadow:var(--pop);margin:0 auto}
+  .cell{background:#E8F7DE;border-radius:10px;display:grid;place-items:center;font-size:calc(var(--s)*.6)}
+  .cell.trail{background:#FFF1B8}
+  .robot{position:absolute;left:8px;top:8px;width:var(--s);height:var(--s);display:grid;place-items:center;font-size:calc(var(--s)*.7);transition:transform .35s ease;z-index:2}
+  .robot.bump{animation:shake .4s}
+  .prog{min-height:76px;display:flex;flex-wrap:wrap;gap:8px;padding:10px;border:3px dashed var(--line);border-radius:18px;background:#fff;align-content:flex-start}
+  .prog .a{width:52px;height:52px;border-radius:14px;background:var(--c);color:#fff;border:var(--b);display:grid;place-items:center;font:700 30px/1 'Mali'}
+  .prog .a.now{background:var(--sun);color:var(--ink);transform:scale(1.12)}
+  .prog .empty{color:var(--ink2);align-self:center;padding:0 6px}
+  .pad{display:grid;grid-template-columns:repeat(3,64px);gap:8px;justify-content:center;margin-top:14px}
+  .pad button{width:64px;height:64px;border-radius:16px;background:#fff;border:var(--b);box-shadow:3px 3px 0 var(--ink);font:700 32px/1 'Mali'}
+  .pad button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .count{font-size:15px;color:var(--ink2);text-align:center;margin-top:6px}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.2 คอมพิวเตอร์ ว12201 · สัปดาห์ที่ 8 อัลกอริทึมด้วยบัตรลูกศร — ไม่เก็บข้อมูลผู้เล่น */
+(function () {
+  const { $, $$ } = KIT;
+  const MAX = 10;
+  const LEVELS = [
+    { start: [4, 0], goal: [4, 3], rocks: [] },
+    { start: [4, 0], goal: [1, 0], rocks: [] },
+    { start: [4, 0], goal: [2, 2], rocks: [[4, 2]] },
+    { start: [4, 0], goal: [0, 4], rocks: [[4, 2], [2, 1], [2, 2], [1, 4]] },
+    { start: [0, 0], goal: [4, 4], rocks: [[0, 2], [1, 1], [2, 3], [3, 1], [4, 2]] },
+  ];
+  const DIR = { U: [-1, 0, '↑', 'ขึ้น'], D: [1, 0, '↓', 'ลง'], L: [0, -1, '←', 'ซ้าย'], R: [0, 1, '→', 'ขวา'] };
+  let li = 0, firstTry = [], tried = false;
+
+  function level(st) {
+    const L = LEVELS[li]; let prog = [], running = false; tried = false;
+    const isRock = (r, c) => L.rocks.some(([a, b]) => a === r && b === c);
+    st.innerHTML = `<section class="card">
+      ${KIT.dots(LEVELS.length, li, firstTry)}<p class="qtag">ด่าน ${li + 1} / ${LEVELS.length}</p>
+      <div class="prompt">วางลูกศรเรียงกัน พาหุ่นยนต์ 🤖 ไปหาดาว ⭐ ระวังก้อนหิน 🪨</div>
+      <div class="play">
+        <div class="board" id="board">${Array.from({ length: 25 }, (_, k) => { const r = Math.floor(k / 5), c = k % 5; return `<div class="cell" data-rc="${r}-${c}">${isRock(r, c) ? '🪨' : L.goal[0] === r && L.goal[1] === c ? '⭐' : ''}</div>`; }).join('')}<div class="robot" id="robot">🤖</div></div>
+        <div>
+          <p class="head" style="font-size:19px">คำสั่งของฉัน (อัลกอริทึม)</p>
+          <div class="prog" id="prog"></div><p class="count" id="count"></p>
+          <div class="pad"><span></span><button data-d="U" aria-label="ขึ้น">↑</button><span></span><button data-d="L" aria-label="ซ้าย">←</button><button data-d="D" aria-label="ลง">↓</button><button data-d="R" aria-label="ขวา">→</button></div>
+          <div class="row mt"><button class="btn sm white" id="undo">⌫ ลบอันสุดท้าย</button><button class="btn sm white" id="clear">✕ ล้างทั้งหมด</button><button class="btn ok" id="run">▶ เดิน!</button></div>
+        </div>
+      </div><div class="fbhost"></div></section>`;
+    const robot = $('#robot'), board = $('#board');
+    const cellSize = () => $('.cell', board).getBoundingClientRect().width + 4;
+    const place = (r, c) => { robot.style.transform = `translate(${c * cellSize()}px,${r * cellSize()}px)`; };
+    const reset = () => { $$('.trail', board).forEach((x) => x.classList.remove('trail')); robot.style.transition = 'none'; place(...L.start); robot.offsetWidth; robot.style.transition = ''; };
+    const drawProg = () => {
+      $('#prog').innerHTML = prog.length ? prog.map((d) => `<span class="a">${DIR[d][2]}</span>`).join('') : '<span class="empty">กดปุ่มลูกศรด้านล่างเพื่อวางคำสั่ง</span>';
+      $('#count').textContent = `${prog.length} / ${MAX} คำสั่ง`;
+    };
+    reset(); drawProg();
+    KIT.say('วางลูกศรพาหุ่นยนต์ไปหาดาว');
+    $$('.pad button', st).forEach((b) => (b.onclick = () => { if (running || prog.length >= MAX) return; KIT.sfx.step(); prog.push(b.dataset.d); drawProg(); $('.fbhost', st).innerHTML = ''; }));
+    $('#undo').onclick = () => { if (running) return; prog.pop(); drawProg(); };
+    $('#clear').onclick = () => { if (running) return; prog = []; drawProg(); reset(); $('.fbhost', st).innerHTML = ''; };
+    $('#run').onclick = () => {
+      if (running || !prog.length) return;
+      running = true; reset(); $('.fbhost', st).innerHTML = '';
+      const first = !tried; tried = true;
+      let [r, c] = L.start, k = 0;
+      const step = () => {
+        $$('#prog .a').forEach((x, n) => x.classList.toggle('now', n === k));
+        const [dr, dc] = DIR[prog[k]];
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nr > 4 || nc < 0 || nc > 4 || isRock(nr, nc)) {
+          robot.classList.add('bump'); setTimeout(() => robot.classList.remove('bump'), 400); running = false;
+          KIT.feedback($('.fbhost', st), false, nr < 0 || nr > 4 || nc < 0 || nc > 4 ? 'ออกนอกแผนที่!' : 'ชนก้อนหิน!', `คำสั่งที่ ${k + 1} (${DIR[prog[k]][2]}) พาหุ่นยนต์ไปไม่ได้ ลองแก้ลำดับลูกศรแล้วกดเดินใหม่`);
+          return;
+        }
+        r = nr; c = nc; place(r, c); KIT.sfx.step();
+        const cell = $(`[data-rc="${r}-${c}"]`, board); if (cell) cell.classList.add('trail');
+        k++;
+        if (k < prog.length) { KIT.later(step, 450); return; }
+        running = false;
+        KIT.later(() => {
+          $$('#prog .a').forEach((x) => x.classList.remove('now'));
+          if (r === L.goal[0] && c === L.goal[1]) {
+            firstTry[li] = first; if (first) KIT.addScore(20); else KIT.addScore(10);
+            KIT.feedback($('.fbhost', st), true, 'ถึงดาวแล้ว!', `ใช้ ${prog.length} คำสั่ง ${first ? 'สำเร็จตั้งแต่ครั้งแรก เยี่ยม!' : ''}`, li + 1 < LEVELS.length ? 'ด่านต่อไป →' : 'ดูผล →', () => { li++; li < LEVELS.length ? level(st) : finish(); });
+          } else KIT.feedback($('.fbhost', st), false, 'ยังไม่ถึงดาว', 'หุ่นยนต์เดินครบทุกคำสั่งแล้ว แต่ยังไม่ถึงดาว ลองเพิ่มหรือแก้ลูกศร');
+        }, 400);
+      };
+      KIT.later(step, 250);
+    };
+    window.onresize = () => { if (!running) reset(); };
+  }
+
+  function finish() {
+    const correct = firstTry.filter(Boolean).length;
+    KIT.end({ correct, total: LEVELS.length, label: 'ผ่านตั้งแต่ครั้งแรก', review: LEVELS.map((_, k) => ({ ok: firstTry[k], text: `ด่าน ${k + 1} ${firstTry[k] ? 'ผ่านครั้งแรก' : 'ผ่านหลังแก้ไขคำสั่ง'}` })),
+      lesson: '<b>อัลกอริทึม</b> คือ ขั้นตอนหรือคำสั่งที่เรียงลำดับไว้ เพื่อให้ทำงานสำเร็จ ถ้าลำดับคำสั่งผิด ผลลัพธ์ก็ผิด ต้องตรวจและแก้ไขคำสั่งให้ถูก' });
+  }
+
+  KIT.init({
+    title: 'หุ่นยนต์เดินตามลูกศร', grade: 'ป.2', subject: 'คอมพิวเตอร์ ว12201', topic: 'อัลกอริทึมด้วยบัตรลูกศร',
+    icon: '🤖⬆️⭐', color: '#8B6CFF', soft: '#ECE6FF', speak: true,
+    howto: ['กดปุ่มลูกศรเพื่อวางคำสั่งเรียงกัน 1 ลูกศร = เดิน 1 ช่อง', 'กด ▶ เดิน! หุ่นยนต์จะทำตามคำสั่งทีละอัน', 'พาหุ่นยนต์ไปถึงดาว ⭐ โดยไม่ชนก้อนหิน 🪨 มีทั้งหมด 5 ด่าน'],
+    start: (st) => { li = 0; firstTry = []; level(st); },
+  });
+})();
+</script>
+</body>
+</html>

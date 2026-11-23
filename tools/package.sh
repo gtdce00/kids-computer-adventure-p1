@@ -5,7 +5,7 @@ set -e
 cd "$(dirname "$0")/.."
 rm -rf build && mkdir -p build/app/p1 download
 python3 tools/build.py p1 build/app/p1/index.html          # เกม ป.1 รวมเป็นไฟล์เดียว
-cp index.html build/app/ && cp -r fonts build/app/ && cp installer/icon.ico build/app/
+cp index.html build/app/ && cp -r fonts games build/app/ && cp installer/icon.ico build/app/
 python3 - <<'PY'
 import zipfile, os
 def add_dir(z, root, prefix):
