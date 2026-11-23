@@ -8,8 +8,8 @@
 เปิดผ่าน GitHub Pages ของ repo นี้ (Settings › Pages)
 
 ## ติดตั้งบนเครื่อง (ไอคอนบน Desktop)
-1. ดาวน์โหลด [`download/KidsComputerAdventure-Setup.exe`](download/KidsComputerAdventure-Setup.exe)
-2. ดับเบิลคลิก แล้วกด ถัดไป › ติดตั้ง › เสร็จสิ้น
+1. ดาวน์โหลด [`download/KidsComputerAdventure-Setup.zip`](download/KidsComputerAdventure-Setup.zip) แล้วคลิกขวา › Extract All
+2. ดับเบิลคลิก `KidsComputerAdventure-Setup.exe` แล้วกด ถัดไป › ติดตั้ง › เสร็จสิ้น
 3. กดไอคอน **KIDS COMPUTER ADVENTURE ป.1** บน Desktop ครั้งเดียว เกมจะเปิดเป็นหน้าต่างโปรแกรมเต็มจอ
 
 - ไม่ต้องใช้สิทธิ์ Admin · เล่นได้โดยไม่ต้องต่ออินเทอร์เน็ต · ถอนการติดตั้งได้ที่ Settings › Apps
