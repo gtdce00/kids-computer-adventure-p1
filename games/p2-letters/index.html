@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>พิมพ์ตัวอักษรตามแบบ</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .card-word{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:16px}
+  .card-word .pic{font-size:clamp(72px,14vw,110px);line-height:1}
+  .boxes{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .bx{width:74px;height:84px;border-radius:16px;border:3px dashed #9AA6C8;background:#fff;display:grid;place-items:center;font:700 46px/1 'Mitr',Tahoma,sans-serif;color:#C3CAE0}
+  .bx.cur{border:4px solid var(--grape);background:#F4EFFF;animation:pop .9s infinite}
+  .bx.ok{border:3px solid var(--ok);background:var(--ok-soft);color:var(--ink)}
+  .keys{display:grid;grid-template-columns:repeat(5,minmax(0,92px));gap:10px;justify-content:center;margin-top:8px}
+  @media (max-width:520px){.keys{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  .key{height:84px;border-radius:16px;background:#fff;border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);font:700 40px/1 'Mitr',Tahoma,sans-serif}
+  .key:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
+  .key.bad{background:var(--no-soft);animation:shake .4s}
+  .key.glow{outline:5px solid var(--sun);outline-offset:3px;animation:pop .9s infinite}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.2 คอมพิวเตอร์ ว12201 · สัปดาห์ที่ 10 พิมพ์ตามแบบ (ดูบัตรคำแล้วหาแป้นตัวอักษรที่เหมือนกัน · จับคู่รูปตัวอักษร)
+   ตามกฎข้อ 2 ใช้บัตรคำชื่อสัตว์/สิ่งของแทนชื่อนักเรียน — ไม่ถามชื่อ ไม่เก็บข้อมูล ไม่มีเสียงพูด */
+(function () {
+  const { $, $$, shuffle } = KIT;
+  const WORDS = [['🐟', 'ปลา'], ['🐱', 'แมว'], ['🐸', 'กบ'], ['🐦', 'นก'], ['🦀', 'ปู'], ['🐷', 'หมู'], ['🐒', 'ลิง'], ['🐍', 'งู'], ['☀️', 'SUN'], ['🚌', 'BUS'], ['🐶', 'DOG'], ['🐄', 'COW']];
+  const TH = 'กขคงจฉชซดตถทนบปผพฟมยรลวสหอาิีุูเแโใไ'.split(''), EN = 'ABCDEFGHIJKLMNOPRSTUVWY'.split('');
+  const MARK = /[ัิ-ฺ็-๎]/;
+  const show = (ch) => (MARK.test(ch) ? '◌' + ch : ch);
+  let keyHandler = null;
+  document.addEventListener('keydown', (e) => { if (keyHandler && e.key && e.key.length === 1) keyHandler(e.key.toUpperCase()); });
+  let order = [], wi = 0; const first = [];
+
+  function play(st) {
+    const [pic, word] = order[wi], letters = Array.from(word), en = /[A-Z]/.test(word);
+    const pool = shuffle((en ? EN : TH).filter((c) => !letters.includes(c))).slice(0, 10 - new Set(letters).size);
+    const keys = shuffle([...new Set(letters)].concat(pool));
+    let pos = 0, wrong = 0, busy = false;
+    st.innerHTML = `<section class="card">${KIT.dots(order.length, wi, first)}
+      <div class="card-word"><span class="pic">${pic}</span><div class="boxes">${letters.map((ch, k) => `<span class="bx ${k === 0 ? 'cur' : ''}" data-i="${k}">${show(ch)}</span>`).join('')}</div></div>
+      <p class="saytx">🔎 ดูตัวอักษรในช่องสีม่วง แล้วแตะแป้นที่เหมือนกัน</p>
+      <div class="keys">${keys.map((ch) => `<button class="key" data-ch="${ch}" aria-label="ตัวอักษร ${ch}">${show(ch)}</button>`).join('')}</div>
+      <div class="fbhost"></div></section>`;
+    const press = (ch) => {
+      if (busy) return;
+      const want = letters[pos], b = $(`.key[data-ch="${CSS.escape(ch)}"]`, st);
+      if (ch === want) {
+        KIT.sfx.ok(); $$('.key', st).forEach((x) => x.classList.remove('glow'));
+        const bx = $(`.bx[data-i="${pos}"]`, st); bx.classList.remove('cur'); bx.classList.add('ok'); pos++;
+        if (pos < letters.length) $(`.bx[data-i="${pos}"]`, st).classList.add('cur');
+        else {
+          busy = true; keyHandler = null; first[wi] = wrong === 0; KIT.addScore(wrong === 0 ? 15 : 8);
+          KIT.feedback($('.fbhost', st), true, `พิมพ์ "${word}" ${pic} ได้แล้ว!`, wrong === 0 ? 'หาแป้นได้ถูกทุกตัว' : 'สำเร็จแล้ว ฝึกสังเกตรูปตัวอักษรต่อไปนะ', wi + 1 < order.length ? 'คำต่อไป →' : 'ดูผล →', () => { wi++; wi < order.length ? play(st) : KIT.end({ correct: first.filter(Boolean).length, total: order.length, label: 'พิมพ์ถูกทุกตัวตั้งแต่ครั้งแรก', review: order.map(([p, w], j) => ({ ok: first[j], text: `${p} ${w}` })), lesson: 'การพิมพ์ตามแบบ: ดูตัวอักษรทีละตัวจากซ้ายไปขวา แล้วหาแป้นที่มี<b>รูปร่างเหมือนกัน</b> ฝึกบ่อย ๆ จะจำตำแหน่งแป้นได้และพิมพ์ได้เร็วขึ้น' }); });
+        }
+      } else if (b) {
+        wrong++; KIT.sfx.no(); b.classList.add('bad'); setTimeout(() => b.classList.remove('bad'), 400);
+        if (wrong >= 2) { const g = $(`.key[data-ch="${CSS.escape(want)}"]`, st); if (g) g.classList.add('glow'); }
+      }
+    };
+    $$('.key', st).forEach((b) => (b.onclick = () => press(b.dataset.ch)));
+    keyHandler = press;
+  }
+
+  KIT.init({
+    title: 'พิมพ์ตัวอักษรตามแบบ', grade: 'ป.2', subject: 'คอมพิวเตอร์ ว12201', topic: 'พิมพ์ตามแบบ (จับคู่รูปตัวอักษร)',
+    icon: '🐟🔤', color: '#8E24AA', soft: '#F1E3F8',
+    pics: [['🐟', 'ดูบัตรคำ'], ['🔤', 'หาตัวอักษร'], ['👆', 'แตะแป้น']],
+    howto: ['ดูภาพและตัวอักษรบนบัตรคำ ช่องสีม่วงคือตัวที่ต้องพิมพ์', 'หาแป้นที่รูปตัวอักษรเหมือนกัน แล้วแตะ (หรือกดบนแป้นพิมพ์จริงก็ได้)', 'พิมพ์ครบทุกตัวจะได้คำใหม่ มี 6 คำ ทั้งภาษาไทยและภาษาอังกฤษ'],
+    start: (st) => { const th = shuffle(WORDS.filter((w) => !/[A-Z]/.test(w[1]))).slice(0, 4), en = shuffle(WORDS.filter((w) => /[A-Z]/.test(w[1]))).slice(0, 2); order = th.concat(en); wi = 0; first.length = 0; play(st); },
+  });
+})();
+</script>
+</body>
+</html>

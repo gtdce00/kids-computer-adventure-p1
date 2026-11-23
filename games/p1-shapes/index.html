@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ต่อรูปทรงเป็นภาพ</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .scene{max-width:560px;margin:0 auto;border:var(--b);border-radius:20px;background:#F6FAFF;box-shadow:var(--pop);overflow:hidden}
+  .scene svg{display:block;width:100%;height:auto}
+  .scene [data-drop]{fill:#fff;stroke:#7A86A8;stroke-width:4;stroke-dasharray:10 8}
+  .scene [data-drop].hover{stroke:var(--grape);fill:#F1EBFF}
+  .scene [data-drop].glow{stroke:var(--sun);stroke-width:7;animation:pop .9s infinite}
+  .scene .filled{stroke:#212121;stroke-width:4;stroke-dasharray:none}
+  .tray{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:16px;min-height:110px}
+  .pc{padding:8px;border-radius:16px;background:#fff;border:var(--b);box-shadow:3px 3px 0 var(--ink)}
+  .pc svg{display:block;pointer-events:none}
+  .pc.sel{background:var(--sun)}
+  .pc.shake{animation:shake .4s}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.1 คอมพิวเตอร์ ว11201 · สัปดาห์ที่ 10 วาดเส้นและรูปทรง (นำรูปทรงมาต่อเป็นภาพ) — ไม่เก็บข้อมูล ไม่มีเสียงพูด */
+(function () {
+  const { $, $$, shuffle } = KIT;
+  const PICS = [
+    { name: 'บ้าน', emoji: '🏠', parts: [{ k: 'sq', t: 'rect', a: [130, 150, 140, 120], c: '#FDD835' }, { k: 'tri', t: 'polygon', a: [[110, 150], [200, 70], [290, 150]], c: '#E53935' }, { k: 'door', t: 'rect', a: [180, 200, 40, 70], c: '#8D5524' }] },
+    { name: 'รถ', emoji: '🚗', parts: [{ k: 'body', t: 'rect', a: [70, 140, 260, 70], c: '#1E88E5' }, { k: 'win', t: 'rect', a: [150, 90, 100, 50], c: '#90CAF9' }, { k: 'wheel', t: 'circle', a: [125, 215, 30], c: '#212121' }, { k: 'wheel', t: 'circle', a: [275, 215, 30], c: '#212121' }] },
+    { name: 'ต้นไม้', emoji: '🌲', parts: [{ k: 'trunk', t: 'rect', a: [185, 220, 30, 60], c: '#8D5524' }, { k: 'triB', t: 'polygon', a: [[100, 220], [200, 110], [300, 220]], c: '#2E7D32' }, { k: 'triS', t: 'polygon', a: [[130, 130], [200, 40], [270, 130]], c: '#43A047' }] },
+    { name: 'หุ่นยนต์', emoji: '🤖', parts: [{ k: 'head', t: 'rect', a: [120, 60, 160, 150], c: '#B0BEC5' }, { k: 'eye', t: 'circle', a: [165, 115, 18], c: '#1E88E5' }, { k: 'eye', t: 'circle', a: [235, 115, 18], c: '#1E88E5' }, { k: 'mouth', t: 'rect', a: [160, 160, 80, 20], c: '#E53935' }, { k: 'ant', t: 'circle', a: [200, 38, 14], c: '#FDD835' }] },
+    { name: 'ไอศกรีม', emoji: '🍦', parts: [{ k: 'cone', t: 'polygon', a: [[140, 150], [260, 150], [200, 285]], c: '#D7A86E' }, { k: 'scoop', t: 'circle', a: [200, 112, 62], c: '#F06292' }, { k: 'cherry', t: 'circle', a: [200, 38, 16], c: '#E53935' }] },
+  ];
+  const bbox = (p) => p.t === 'rect' ? [p.a[0], p.a[1], p.a[2], p.a[3]] : p.t === 'circle' ? [p.a[0] - p.a[2], p.a[1] - p.a[2], p.a[2] * 2, p.a[2] * 2] : (() => { const xs = p.a.map((q) => q[0]), ys = p.a.map((q) => q[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)]; })();
+  const el = (p, attrs) => p.t === 'rect' ? `<rect x="${p.a[0]}" y="${p.a[1]}" width="${p.a[2]}" height="${p.a[3]}" rx="6" ${attrs}/>` : p.t === 'circle' ? `<circle cx="${p.a[0]}" cy="${p.a[1]}" r="${p.a[2]}" ${attrs}/>` : `<polygon points="${p.a.map((q) => q.join(',')).join(' ')}" ${attrs}/>`;
+  const pieceSVG = (p) => { const [x, y, w, h] = bbox(p), s = Math.min(1, 120 / Math.max(w, h)); return `<svg width="${(w + 10) * s}" height="${(h + 10) * s}" viewBox="${x - 5} ${y - 5} ${w + 10} ${h + 10}">${el(p, `fill="${p.c}" stroke="#212121" stroke-width="4" stroke-linejoin="round"`)}</svg>`; };
+  let pi = 0, good = 0, all = 0; const review = [];
+
+  function play(st) {
+    const P = PICS[pi], filled = new Set(); let sel = null, wrongs = 0;
+    const order = shuffle(P.parts.map((_, k) => k));
+    st.innerHTML = `<section class="card">${KIT.dots(PICS.length, pi)}
+      <div class="bigshow" style="font-size:58px">${P.emoji}</div><p class="saytx">ลากรูปทรงด้านล่าง ไปวางในช่องเส้นประที่รูปร่างเหมือนกัน</p>
+      <div class="scene"><svg viewBox="0 0 400 300">${P.parts.map((p, k) => el(p, `data-drop="${p.k}" data-i="${k}"`)).join('')}</svg></div>
+      <div class="tray">${order.map((k) => `<div class="pc" data-i="${k}" role="button" tabindex="0" aria-label="รูปทรง">${pieceSVG(P.parts[k])}</div>`).join('')}</div>
+      <div class="fbhost"></div></section>`;
+    const tryPut = (pk, slot) => {
+      const piece = P.parts[pk]; const si = Number(slot.getAttribute('data-i'));
+      if (filled.has(si)) return;
+      if (slot.getAttribute('data-drop') !== piece.k) {
+        wrongs++; KIT.sfx.no(); const pe = $(`.pc[data-i="${pk}"]`, st); pe.classList.add('shake'); setTimeout(() => pe.classList.remove('shake'), 400);
+        if (wrongs >= 2) { const t = $$('.scene [data-drop]', st).find((s) => s.getAttribute('data-drop') === piece.k && !filled.has(Number(s.getAttribute('data-i')))); if (t) t.classList.add('glow'); }
+        return;
+      }
+      filled.add(si); KIT.sfx.ok(); slot.classList.remove('glow'); slot.classList.add('filled'); slot.setAttribute('style', `fill:${piece.c}`);
+      $(`.pc[data-i="${pk}"]`, st).remove(); sel = null;
+      if (filled.size === P.parts.length) {
+        const ok = wrongs === 0; good += ok ? 1 : 0; all++; KIT.addScore(ok ? 20 : 10);
+        review.push({ ok, text: `${P.emoji} ${P.name}` });
+        KIT.feedback($('.fbhost', st), true, `ได้ภาพ${P.name} ${P.emoji}`, 'นำรูปทรงมาต่อกันเป็นภาพได้แล้ว', pi + 1 < PICS.length ? 'ภาพต่อไป →' : 'ดูผล →', () => { pi++; pi < PICS.length ? play(st) : KIT.end({ correct: good, total: all, label: 'ต่อภาพถูกตั้งแต่ครั้งแรก', review, lesson: 'ภาพหลายอย่างเกิดจาก <b>รูปทรง</b> มาต่อกัน: ⬜ สี่เหลี่ยม 🔺 สามเหลี่ยม ⚪ วงกลม ในโปรแกรมวาดภาพ เราใช้เครื่องมือรูปทรงวาดแล้วนำมาต่อเป็นบ้าน รถ หรือหุ่นยนต์ได้' }); });
+      }
+    };
+    $$('.pc', st).forEach((pe) => KIT.draggable(pe, (t) => tryPut(Number(pe.dataset.i), t), () => { sel = Number(pe.dataset.i); KIT.sfx.tap(); $$('.pc', st).forEach((x) => x.classList.toggle('sel', x === pe)); }));
+    $$('.scene [data-drop]', st).forEach((s) => s.addEventListener('click', () => { if (sel !== null) tryPut(sel, s); }));
+  }
+
+  KIT.init({
+    title: 'ต่อรูปทรงเป็นภาพ', grade: 'ป.1–ป.2', subject: 'คอมพิวเตอร์', topic: 'วาดเส้นและรูปทรง',
+    icon: '🔺⬜⚪', color: '#8E24AA', soft: '#F1E3F8',
+    pics: [['🔺', 'จับรูปทรง'], ['🫳', 'ลากไปวาง'], ['🏠', 'ได้ภาพ!']],
+    howto: ['ดูช่องเส้นประในภาพ', 'ลากรูปทรงจากด้านล่าง ไปวางในช่องที่รูปร่างและขนาดเหมือนกัน (หรือแตะรูปทรง แล้วแตะช่อง)', 'ต่อให้ครบทุกช่องจะได้ภาพ มี 5 ภาพ'],
+    start: (st) => { pi = 0; good = 0; all = 0; review.length = 0; play(st); },
+  });
+})();
+</script>
+</body>
+</html>

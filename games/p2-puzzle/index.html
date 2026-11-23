@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>จิ๊กซอว์คอมพิวเตอร์</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .wrapz{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px;align-items:start}
+  @media (max-width:760px){.wrapz{grid-template-columns:1fr}}
+  .grid{display:grid;gap:3px;aspect-ratio:3/2;border:var(--b);border-radius:16px;overflow:hidden;background:#C9D3EE;box-shadow:var(--pop)}
+  .slot{background:#EEF2FF;border:2px dashed #9AA6C8;position:relative}
+  .slot.ok{border:none}
+  .tray{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-content:flex-start}
+  .tile{width:110px;aspect-ratio:3/2;border:3px solid var(--ink);border-radius:10px;box-shadow:3px 3px 0 var(--ink);background-repeat:no-repeat}
+  .tile.sel{outline:5px solid var(--sun);outline-offset:2px}
+  .tile.shake{animation:shake .4s}
+  .preview{margin-top:10px;text-align:center}
+  .preview img{width:160px;border:2px solid var(--line);border-radius:10px}
+  .parts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+  .parts span{background:#fff;border:2px solid var(--ok);border-radius:999px;padding:4px 12px;font-size:16px}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.2 คอมพิวเตอร์ ว12201 · สัปดาห์ที่ 1 ส่วนประกอบของคอมพิวเตอร์ (ต่อจิ๊กซอว์ภาพ ชี้และบอกชื่อแต่ละส่วน) — ไม่เก็บข้อมูล ไม่มีเสียงพูด */
+(function () {
+  const { $, $$, shuffle } = KIT;
+  const PZ = [
+    { cols: 2, rows: 2, bg: '#E3F2FD', parts: [['🖥️', 'จอภาพ', 300, 150, 190], ['⌨️', 'แป้นพิมพ์', 280, 320, 110], ['🖱️', 'เมาส์', 455, 325, 60], ['🔊', 'ลำโพง', 100, 200, 90], ['🔊', 'ลำโพง', 500, 200, 90]] },
+    { cols: 3, rows: 2, bg: '#FFF3E0', parts: [['💻', 'โน้ตบุ๊ก', 300, 180, 220], ['🖱️', 'เมาส์', 510, 310, 70], ['🎧', 'หูฟัง', 95, 140, 100], ['📱', 'โทรศัพท์', 100, 310, 80]] },
+    { cols: 3, rows: 3, bg: '#E8F5E9', parts: [['🖨️', 'เครื่องพิมพ์', 130, 140, 120], ['📷', 'กล้อง', 460, 120, 100], ['🎤', 'ไมโครโฟน', 120, 320, 90], ['⌨️', 'แป้นพิมพ์', 430, 310, 120], ['🖥️', 'จอภาพ', 300, 200, 90]] },
+  ];
+  const W = 600, H = 400;
+  const picture = (P) => {
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+    x.fillStyle = P.bg; x.fillRect(0, 0, W, H);
+    ['#FFD54F', '#81D4FA', '#F48FB1', '#A5D6A7', '#CE93D8'].forEach((col, k) => { x.fillStyle = col; x.beginPath(); x.arc(60 + k * 125, 40 + (k % 2) * 30, 34, 0, Math.PI * 2); x.fill(); });
+    x.fillStyle = '#C8A27A'; x.fillRect(0, 300, W, 100); x.fillStyle = '#A9825A'; for (let k = 0; k < W; k += 60) x.fillRect(k, 300, 30, 100);
+    x.fillStyle = '#000'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    P.parts.forEach(([e, , px, py, s]) => { x.font = `${s}px "Segoe UI Emoji","Noto Color Emoji",sans-serif`; x.fillText(e, px, py); });
+    return c.toDataURL('image/png');
+  };
+  let pi = 0; const first = [];
+
+  function play(st) {
+    const P = PZ[pi], n = P.cols * P.rows, url = picture(P); let sel = null, wrong = 0, done = 0;
+    const bgPos = (k) => `${P.cols > 1 ? (k % P.cols) / (P.cols - 1) * 100 : 0}% ${P.rows > 1 ? Math.floor(k / P.cols) / (P.rows - 1) * 100 : 0}%`;
+    const tileStyle = (k) => `background-image:url(${url});background-size:${P.cols * 100}% ${P.rows * 100}%;background-position:${bgPos(k)}`;
+    st.innerHTML = `<section class="card">${KIT.dots(PZ.length, pi, first)}
+      <div class="bigshow" style="font-size:46px">🧩 ➜ 🖥️</div><p class="saytx">ลากชิ้นส่วนไปวางในช่องให้เป็นภาพเหมือนตัวอย่าง</p>
+      <div class="wrapz"><div><div class="grid" style="grid-template-columns:repeat(${P.cols},1fr);grid-template-rows:repeat(${P.rows},1fr)">${Array.from({ length: n }, (_, k) => `<div class="slot" data-drop="${k}"></div>`).join('')}</div>
+        <div class="preview"><p style="font-size:15px;color:var(--ink2)">ภาพตัวอย่าง 👀</p><img src="${url}" alt="ภาพตัวอย่าง"></div></div>
+        <div class="tray">${shuffle([...Array(n).keys()]).map((k) => `<div class="tile" data-k="${k}" role="button" tabindex="0" aria-label="ชิ้นจิ๊กซอว์" style="${tileStyle(k)}"></div>`).join('')}</div></div>
+      <div class="fbhost"></div></section>`;
+    const put = (k, slot) => {
+      const s = Number(slot.dataset.drop);
+      if (slot.classList.contains('ok')) return;
+      if (s !== k) { wrong++; KIT.sfx.no(); const t = $(`.tile[data-k="${k}"]`, st); t.classList.add('shake'); setTimeout(() => t.classList.remove('shake'), 400); return; }
+      slot.classList.add('ok'); slot.setAttribute('style', tileStyle(k)); $(`.tile[data-k="${k}"]`, st).remove(); sel = null; done++; KIT.sfx.ok();
+      if (done === n) {
+        first[pi] = wrong <= 1; KIT.addScore(first[pi] ? 20 : 10);
+        $('.fbhost', st).insertAdjacentHTML('beforebegin', `<div class="parts">${[...new Map(P.parts.map((p) => [p[1], p[0]]))].map(([name, e]) => `<span>${e} ${name}</span>`).join('')}</div>`);
+        KIT.feedback($('.fbhost', st), true, 'ต่อจิ๊กซอว์ครบแล้ว!', 'ชี้ที่ภาพแล้วบอกชื่อแต่ละส่วนกับครูหรือเพื่อนนะ', pi + 1 < PZ.length ? 'จิ๊กซอว์ต่อไป →' : 'ดูผล →', () => { pi++; pi < PZ.length ? play(st) : KIT.end({ correct: first.filter(Boolean).length, total: PZ.length, label: 'ต่อเสร็จโดยวางผิดไม่เกิน 1 ครั้ง', review: PZ.map((p, j) => ({ ok: first[j], text: `จิ๊กซอว์ ${p.cols}×${p.rows} ชิ้น` })), lesson: 'คอมพิวเตอร์ประกอบด้วยหลายส่วนทำงานร่วมกัน: 🖥️ จอภาพ ⌨️ แป้นพิมพ์ 🖱️ เมาส์ 🔊 ลำโพง และอุปกรณ์อื่น เช่น 🖨️ เครื่องพิมพ์ 📷 กล้อง 🎤 ไมโครโฟน 🎧 หูฟัง' }); });
+      }
+    };
+    $$('.tile', st).forEach((t) => KIT.draggable(t, (slot) => put(Number(t.dataset.k), slot), () => { sel = Number(t.dataset.k); KIT.sfx.tap(); $$('.tile', st).forEach((x) => x.classList.toggle('sel', x === t)); }));
+    $$('.slot', st).forEach((s) => (s.onclick = () => { if (sel !== null) put(sel, s); }));
+  }
+
+  KIT.init({
+    title: 'จิ๊กซอว์คอมพิวเตอร์', grade: 'ป.2', subject: 'คอมพิวเตอร์ ว12201', topic: 'ส่วนประกอบของคอมพิวเตอร์',
+    icon: '🧩🖥️', color: '#1E88E5', soft: '#DCEBFF',
+    pics: [['🧩', 'จับชิ้นส่วน'], ['🫳', 'ลากไปวาง'], ['🖥️', 'ได้ภาพ!']],
+    howto: ['ดูภาพตัวอย่างใต้ตาราง', 'ลากชิ้นจิ๊กซอว์ไปวางในช่องที่ถูก (หรือแตะชิ้น แล้วแตะช่อง)', 'มี 3 ภาพ: 4 ชิ้น 6 ชิ้น และ 9 ชิ้น ต่อเสร็จแล้วบอกชื่อแต่ละส่วน'],
+    start: (st) => { pi = 0; first.length = 0; play(st); },
+  });
+})();
+</script>
+</body>
+</html>

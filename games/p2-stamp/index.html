@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ตกแต่งภาพด้วยตราประทับ</title>
+<link rel="stylesheet" href="../kit/kit.css">
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script src="../kit/paint.js"></script>
+<script>
+/* ป.2 คอมพิวเตอร์ ว12201 · สัปดาห์ที่ 11 ตกแต่งภาพ (ตราประทับ สติกเกอร์ ถังสี) — ไม่เก็บข้อมูล ไม่บันทึกภาพ ไม่มีเสียงพูด */
+(function () {
+  const { $ } = KIT;
+  const SCENES = [
+    { name: 'สวนของหนู', icon: '🌳', stamps: ['🌸', '🌳', '🦋', '🐱', '🐶', '🏠', '☀️', '☁️', '🌈'], sky: ['#9FD8FF', '#E3F4FF'], ground: '#A5D6A7' },
+    { name: 'ใต้ทะเล', icon: '🐠', stamps: ['🐠', '🐙', '🐢', '🦀', '🐚', '🌿', '🐳', '⭐', '🫧'], sky: ['#4FC3F7', '#B3E5FC'], ground: '#FFE0B2' },
+  ];
+  let si = 0, good = 0; const review = [];
+
+  function play(st) {
+    const S = SCENES[si];
+    st.innerHTML = `<section class="card">${KIT.dots(SCENES.length, si)}
+      <div class="bigshow" style="font-size:52px">${S.icon} ${S.name}</div>
+      <p class="saytx">เลือกตราประทับ แล้วแตะบนภาพ · ทำภารกิจให้ครบ 4 ข้อ</p>
+      <ul class="tasks" id="tasks">
+        <li data-k="st"><span class="big">${S.stamps.slice(0, 3).join('')}</span>ประทับ 3 แบบ</li>
+        <li data-k="br"><span class="big">🖌️</span>วาดเส้น</li>
+        <li data-k="fi"><span class="big">🪣</span>เทสี</li>
+        <li data-k="mi"><span class="big">🪞</span>ลองวาดแบบกระจก</li>
+      </ul>
+      <div id="pt" class="mt-s"></div>
+      <div class="row mt"><button class="btn ok" id="done" disabled>✓ เสร็จแล้ว</button></div>
+      <p class="privacy center">ภาพไม่ถูกบันทึกเก็บไว้ ถ้าอยากเก็บ ให้ครูช่วยถ่ายรูปหน้าจอ</p><div class="fbhost"></div></section>`;
+    let usedMirror = false;
+    const paint = KIT.Paint($('#pt', st), {
+      tools: ['stamp', 'brush', 'pencil', 'fill', 'mirror', 'eraser', 'undo', 'clear'], tool: 'stamp', stamps: S.stamps, color: '#E53935',
+      onChange: () => upd(), onFill: () => upd(), onMirror: () => { usedMirror = true; upd(); },
+    });
+    const g = paint.bx.createLinearGradient(0, 0, 0, 500); g.addColorStop(0, S.sky[0]); g.addColorStop(1, S.sky[1]);
+    paint.bx.fillStyle = g; paint.bx.fillRect(0, 0, 800, 500); paint.bx.fillStyle = S.ground; paint.bx.fillRect(0, 390, 800, 110);
+    // เส้นขอบฉาก (ลบไม่ได้) ให้ถังสีเทสีทีละส่วน ไม่ทับทั้งภาพ
+    const o = paint.tx; o.strokeStyle = '#3A4466'; o.lineWidth = 5; o.lineJoin = 'round'; o.lineCap = 'round';
+    o.beginPath(); o.moveTo(0, 392); for (let x = 0; x <= 800; x += 20) o.lineTo(x, 392 + 8 * Math.sin(x / 40)); o.stroke();
+    if (si === 0) {
+      o.beginPath(); o.moveTo(0, 404); o.quadraticCurveTo(160, 240, 340, 410); o.stroke();
+      o.beginPath(); o.moveTo(460, 410); o.quadraticCurveTo(640, 270, 800, 360); o.stroke();
+      o.beginPath(); o.arc(690, 85, 48, 0, Math.PI * 2); o.stroke();
+      o.beginPath(); o.arc(170, 90, 32, Math.PI * 0.9, Math.PI * 1.9); o.arc(215, 78, 38, Math.PI * 1.1, Math.PI * 2); o.arc(255, 100, 28, Math.PI * 1.4, Math.PI * 0.5); o.lineTo(160, 128); o.arc(160, 106, 22, Math.PI * 0.5, Math.PI * 1.3); o.stroke();
+    } else {
+      o.beginPath(); o.ellipse(160, 392, 90, 55, 0, Math.PI, Math.PI * 2); o.stroke();
+      o.beginPath(); o.ellipse(640, 392, 120, 70, 0, Math.PI, Math.PI * 2); o.stroke();
+      [[380, 120, 26], [430, 70, 16], [350, 200, 18]].forEach(([x, y, r]) => { o.beginPath(); o.arc(x, y, r, 0, Math.PI * 2); o.stroke(); });
+    }
+    function upd() {
+      const s = paint.st, m = { st: s.stampsUsed.size >= 3, br: s.strokes >= 1, fi: s.fills.size >= 1, mi: usedMirror && s.strokes + s.stampsUsed.size > 0 };
+      Object.keys(m).forEach((k) => $(`#tasks li[data-k="${k}"]`).classList.toggle('done', m[k]));
+      $('#done').disabled = !Object.values(m).every(Boolean);
+    }
+    $('#done').onclick = () => {
+      good++; KIT.addScore(20); review.push({ ok: true, text: `${S.icon} ${S.name} ตกแต่งครบทุกภารกิจ` }); paint.lock(true); $('#done').disabled = true;
+      KIT.feedback($('.fbhost', st), true, 'ภาพสวยมาก!', 'ใช้ตราประทับ พู่กัน ถังสี และกระจกได้ครบแล้ว', si + 1 < SCENES.length ? 'ภาพต่อไป →' : 'ดูผล →', () => { si++; si < SCENES.length ? play(st) : KIT.end({ correct: good, total: SCENES.length, label: 'ตกแต่งภาพสำเร็จ', review, lesson: 'โปรแกรมวาดภาพอย่าง Tux Paint มี <b>ตราประทับ</b> 🌸 ให้แตะวางรูปได้ทันที ใช้ 🔹🔷 เปลี่ยนขนาด · <b>กระจก</b> 🪞 ทำให้ภาพสองฝั่งเหมือนกัน · ใช้ <b>ถังสี</b> 🪣 และ <b>พู่กัน</b> 🖌️ ตกแต่งให้สวยงาม' }); });
+    };
+  }
+
+  KIT.init({
+    title: 'ตกแต่งภาพด้วยตราประทับ', grade: 'ป.1–ป.2', subject: 'คอมพิวเตอร์', topic: 'ตกแต่งภาพ (ตราประทับ ถังสี กระจก)',
+    icon: '🌸🦋🪞', color: '#F06292', soft: '#FFE1EC',
+    pics: [['🌸', 'เลือกตรา'], ['👆', 'แตะบนภาพ'], ['🪞', 'ลองกระจก'], ['✅', 'เสร็จแล้ว']],
+    howto: ['แตะรูปตราประทับใต้ภาพ แล้วแตะบนภาพเพื่อประทับ (🔹 เล็ก 🔷 ใหญ่)', 'ใช้พู่กันวาดเส้น ใช้ถังสีเทสี และเปิดกระจก 🪞 ให้ภาพสองฝั่งเหมือนกัน', 'ทำครบ 4 ภารกิจ แล้วกดเสร็จแล้ว มี 2 ภาพ'],
+    start: (st) => { si = 0; good = 0; review.length = 0; play(st); },
+  });
+})();
+</script>
+</body>
+</html>

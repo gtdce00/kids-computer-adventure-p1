@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>อุปกรณ์นี้ใช้ทำอะไร</title>
+<link rel="stylesheet" href="../kit/kit.css">
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.1 คอมพิวเตอร์ ว11201 · สัปดาห์ที่ 2 อุปกรณ์คอมพิวเตอร์ (จับคู่อุปกรณ์กับหน้าที่: จอ = ดู, ลำโพง = ฟัง, เมาส์ = ชี้) — ไม่เก็บข้อมูล ไม่มีเสียงพูด */
+(function () {
+  const JOB = { see: ['👀', 'ดู'], hear: ['👂', 'ฟัง'], point: ['👆', 'ชี้ คลิก'], type: ['🔤', 'พิมพ์'], print: ['📄', 'พิมพ์ลงกระดาษ'], photo: ['📸', 'ถ่ายภาพ'], talk: ['🗣️', 'พูด อัดเสียง'] };
+  const DEV = [['🖥️', 'จอภาพ', 'see'], ['🔊', 'ลำโพง', 'hear'], ['🖱️', 'เมาส์', 'point'], ['⌨️', 'แป้นพิมพ์', 'type'], ['🎧', 'หูฟัง', 'hear'], ['🖨️', 'เครื่องพิมพ์', 'print'], ['📷', 'กล้อง', 'photo'], ['🎤', 'ไมโครโฟน', 'talk']];
+  const rounds = [];
+  // แบบที่ 1: เห็นอุปกรณ์ เลือกหน้าที่
+  DEV.forEach(([e, n, j]) => {
+    const wrong = KIT.shuffle(Object.keys(JOB).filter((k) => k !== j && !(j === 'hear' && k === 'hear'))).slice(0, 2);
+    rounds.push({ show: e, say: `${n} ใช้ทำอะไร?`, opts: [j, ...wrong].map((k) => ({ h: JOB[k][0], c: JOB[k][1], ok: k === j })), explain: `${n} ${e} ใช้ ${JOB[j][1]} ${JOB[j][0]}`, short: `${e} ${n} = ${JOB[j][0]} ${JOB[j][1]}` });
+  });
+  // แบบที่ 2: เห็นหน้าที่ เลือกอุปกรณ์
+  [['see', '🖥️'], ['hear', '🔊'], ['point', '🖱️'], ['type', '⌨️']].forEach(([j, ans]) => {
+    const pool = KIT.shuffle(DEV.filter((d) => d[2] !== j)).slice(0, 2);
+    const d = DEV.find((x) => x[0] === ans);
+    rounds.push({ show: JOB[j][0], say: `อยาก${JOB[j][1]} ใช้อุปกรณ์ไหน?`, opts: [d, ...pool].map(([e, n, jj]) => ({ h: e, c: n, ok: jj === j })), explain: `อยาก${JOB[j][1]} ใช้ ${d[1]} ${d[0]}`, short: `${JOB[j][0]} ${JOB[j][1]} = ${d[0]} ${d[1]}` });
+  });
+  KIT.init({
+    title: 'อุปกรณ์นี้ใช้ทำอะไร', grade: 'ป.1', subject: 'คอมพิวเตอร์ ว11201', topic: 'อุปกรณ์คอมพิวเตอร์',
+    icon: '🖥️👀🔊👂', color: '#1E88E5', soft: '#DCEBFF',
+    pics: [['🖥️', 'ดูอุปกรณ์'], ['🤔', 'ใช้ทำอะไร'], ['👀', 'แตะคำตอบ']],
+    howto: ['ดูภาพอุปกรณ์ตรงกลาง', 'แตะภาพที่บอกว่าอุปกรณ์นั้นใช้ทำอะไร เช่น จอภาพ = 👀 ดู', 'ตอบผิดลองใหม่ได้ ผิด 2 ครั้ง คำตอบจะกระพริบช่วย มี 10 ข้อ'],
+    start: (st) => KIT.pick(st, { rounds, count: 10, lesson: '🖥️ จอภาพ = 👀 ดู · 🔊 ลำโพง / 🎧 หูฟัง = 👂 ฟัง · 🖱️ เมาส์ = 👆 ชี้และคลิก · ⌨️ แป้นพิมพ์ = 🔤 พิมพ์ · 🖨️ เครื่องพิมพ์ = 📄 พิมพ์ลงกระดาษ' }),
+  });
+})();
+</script>
+</body>
+</html>

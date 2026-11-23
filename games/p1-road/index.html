@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ลากเส้นพาไปหาของ</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .board{position:relative;width:100%;max-width:880px;margin:0 auto;aspect-ratio:8/5;border:var(--b);border-radius:20px;background:#CFEFB8;box-shadow:var(--pop);overflow:hidden;touch-action:none;cursor:crosshair}
+  .board canvas{position:absolute;inset:0;width:100%;height:100%}
+  .em{position:absolute;font-size:clamp(34px,6vw,56px);line-height:1;transform:translate(-50%,-50%);pointer-events:none;transition:transform .15s}
+  .em.start{animation:pop 1s infinite}
+  .em.hero{z-index:3}
+  .board.oops{animation:shake .4s}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.1–ป.2 ฝึกวาดภาพ: ลากเส้นไปตามถนน (ฝึกควบคุมเมาส์) — ไม่เก็บข้อมูล ไม่มีเสียงพูด */
+(function () {
+  const { $ } = KIT;
+  const W = 800, H = 500, HALF = 40;
+  const wave = Array.from({ length: 41 }, (_, k) => [80 + k * 16, 250 + 150 * Math.sin(k / 40 * Math.PI * 2)]);
+  const ROADS = [
+    { hero: '🐰', goal: '🥕', pts: [[90, 250], [710, 250]] },
+    { hero: '🐶', goal: '🦴', pts: [[110, 100], [110, 400], [690, 400]] },
+    { hero: '🐝', goal: '🌻', pts: [[90, 120], [260, 380], [430, 120], [600, 380], [720, 200]] },
+    { hero: '🚗', goal: '🏠', pts: wave },
+    { hero: '🐱', goal: '🐟', pts: [[100, 95], [700, 95], [700, 250], [150, 250], [150, 405], [700, 405]] },
+  ];
+  const dSeg = (p, a, b) => { const vx = b[0] - a[0], vy = b[1] - a[1], L = vx * vx + vy * vy; let t = L ? ((p[0] - a[0]) * vx + (p[1] - a[1]) * vy) / L : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(p[0] - a[0] - t * vx, p[1] - a[1] - t * vy); };
+  const dRoad = (p, pts) => { let m = 1e9; for (let k = 0; k < pts.length - 1; k++) m = Math.min(m, dSeg(p, pts[k], pts[k + 1])); return m; };
+  let ri = 0; const first = [];
+
+  function play(st) {
+    const R = ROADS[ri], S = R.pts[0], G = R.pts[R.pts.length - 1]; let tries = 0, drawing = false, last = null, won = false;
+    st.innerHTML = `<section class="card">${KIT.dots(ROADS.length, ri, first)}
+      <div class="bigshow" style="font-size:54px">${R.hero} ➜ ${R.goal}</div><p class="saytx">กดค้างที่ ${R.hero} แล้วลากไปตามถนนจนถึง ${R.goal} อย่าออกนอกถนนนะ</p>
+      <div class="board" id="bd"><canvas class="road" width="${W}" height="${H}"></canvas><canvas class="ink" width="${W}" height="${H}"></canvas>
+        <span class="em goal" style="left:${G[0] / 8}%;top:${G[1] / 5}%">${R.goal}</span><span class="em hero start" id="hero" style="left:${S[0] / 8}%;top:${S[1] / 5}%">${R.hero}</span></div>
+      <div class="fbhost"></div></section>`;
+    const bd = $('#bd'), [rc, ic] = bd.querySelectorAll('canvas'), rx = rc.getContext('2d'), ix = ic.getContext('2d'), hero = $('#hero');
+    rx.lineCap = 'round'; rx.lineJoin = 'round';
+    const path = (c) => { c.beginPath(); R.pts.forEach(([x, y], k) => (k ? c.lineTo(x, y) : c.moveTo(x, y))); };
+    rx.strokeStyle = '#8D99AE'; rx.lineWidth = HALF * 2 + 8; path(rx); rx.stroke();
+    rx.strokeStyle = '#B9C1D1'; rx.lineWidth = HALF * 2 - 6; path(rx); rx.stroke();
+    rx.strokeStyle = '#fff'; rx.lineWidth = 4; rx.setLineDash([14, 14]); path(rx); rx.stroke(); rx.setLineDash([]);
+    const pos = (e) => { const r = bd.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
+    const place = (p) => { hero.style.left = p[0] / 8 + '%'; hero.style.top = p[1] / 5 + '%'; };
+    const reset = () => { ix.clearRect(0, 0, W, H); place(S); hero.classList.add('start'); drawing = false; };
+    bd.addEventListener('pointerdown', (e) => {
+      if (won) return; e.preventDefault(); const p = pos(e);
+      if (Math.hypot(p[0] - S[0], p[1] - S[1]) > 50) { KIT.sfx.no(); return; }
+      $('.fbhost', st).innerHTML = ''; ix.clearRect(0, 0, W, H);
+      drawing = true; last = p; hero.classList.remove('start'); if (bd.setPointerCapture) bd.setPointerCapture(e.pointerId);
+    });
+    bd.addEventListener('pointermove', (e) => {
+      if (!drawing) return; const p = pos(e);
+      ix.strokeStyle = '#E53935'; ix.lineWidth = 8; ix.lineCap = 'round'; ix.beginPath(); ix.moveTo(...last); ix.lineTo(...p); ix.stroke(); last = p; place(p);
+      if (dRoad(p, R.pts) > HALF) {
+        tries++; drawing = false; bd.classList.add('oops'); setTimeout(() => bd.classList.remove('oops'), 400);
+        KIT.feedback($('.fbhost', st), false, 'ออกนอกถนนแล้ว!', 'กลับไปเริ่มที่จุดเริ่มต้น ลากช้า ๆ ให้อยู่บนถนนสีเทา'); setTimeout(reset, 700); return;
+      }
+      if (Math.hypot(p[0] - G[0], p[1] - G[1]) < 38) {
+        drawing = false; won = true; place(G); first[ri] = tries === 0; KIT.addScore(tries === 0 ? 20 : 10);
+        KIT.feedback($('.fbhost', st), true, `${R.hero} ถึง ${R.goal} แล้ว!`, tries === 0 ? 'ไม่ออกนอกถนนเลย เก่งมาก!' : 'สำเร็จแล้ว ฝึกบ่อย ๆ จะคล่องขึ้น', ri + 1 < ROADS.length ? 'ด่านต่อไป →' : 'ดูผล →', () => { ri++; ri < ROADS.length ? play(st) : KIT.end({ correct: first.filter(Boolean).length, total: ROADS.length, label: 'ผ่านโดยไม่ออกนอกถนน', review: ROADS.map((r, k) => ({ ok: first[k], text: `${r.hero} ➜ ${r.goal}` })), lesson: 'การกดเมาส์ค้างแล้วลากช้า ๆ ให้อยู่ในเส้นทาง ช่วยให้มือกับตาทำงานพร้อมกัน วาดภาพในคอมพิวเตอร์ได้แม่นและคล่องขึ้น' }); });
+      }
+    });
+    const up = () => { if (drawing && !won) { drawing = false; KIT.feedback($('.fbhost', st), false, 'ปล่อยนิ้วก่อนถึงแล้ว', 'กดค้างไว้ตลอดทาง เริ่มใหม่ที่จุดเริ่มต้นนะ'); setTimeout(reset, 700); } };
+    bd.addEventListener('pointerup', up); bd.addEventListener('pointercancel', up);
+  }
+
+  KIT.init({
+    title: 'ลากเส้นพาไปหาของ', grade: 'ป.1–ป.2', subject: 'คอมพิวเตอร์', topic: 'ฝึกวาดภาพ (ควบคุมการลากเส้น)',
+    icon: '🐰〰️🥕', color: '#43A047', soft: '#DDF3DC',
+    pics: [['👆', 'กดค้างที่สัตว์'], ['〰️', 'ลากตามถนน'], ['🥕', 'ถึงแล้ว!']],
+    howto: ['กดเมาส์ค้างที่ตัวละคร (ตัวที่กระพริบ)', 'ลากไปตามถนนสีเทา ห้ามออกนอกถนน ห้ามปล่อยนิ้ว', 'ไปให้ถึงของที่ปลายทาง มี 5 ด่าน ถนนจะคดเคี้ยวขึ้นเรื่อย ๆ'],
+    start: (st) => { ri = 0; first.length = 0; play(st); },
+  });
+})();
+</script>
+</body>
+</html>

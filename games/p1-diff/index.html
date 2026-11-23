@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>หาจุดต่าง</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:700px){.pair{grid-template-columns:1fr}}
+  .pic{border:var(--b);border-radius:18px;overflow:hidden;box-shadow:var(--pop);background:#fff;cursor:pointer}
+  .pic svg{display:block;width:100%;height:auto;user-select:none}
+  .pic text{pointer-events:none}
+  .found{fill:none;stroke:#E53935;stroke-width:5}
+  .miss{font:700 34px 'Mali';fill:#E53935;opacity:.9}
+  .left{display:flex;justify-content:center;gap:10px;margin:12px 0;font-size:30px}
+  .left span{width:40px;height:40px;border-radius:50%;border:3px solid var(--ink);display:grid;place-items:center;background:#fff;font-size:22px}
+  .left span.on{background:var(--ok);color:#fff;border-color:var(--ok)}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.1 คอมพิวเตอร์ ว11201 · สัปดาห์ที่ 7 การแก้ปัญหาอย่างง่าย (หาจุดต่างในภาพ) — ไม่เก็บข้อมูล ไม่มีเสียงพูด */
+(function () {
+  const { $, $$ } = KIT;
+  const SCENES = [
+    { name: 'สวนสาธารณะ', bg: [['#BDE6FF', 0, 0, 400, 190], ['#BFE8A8', 0, 190, 400, 110]],
+      items: [['☀️', 340, 50, 50], ['☁️', 90, 50, 44], ['🌳', 70, 190, 84], ['🏠', 205, 180, 90], ['🐶', 320, 255, 46], ['🌸', 150, 268, 34], ['🦋', 255, 85, 36], ['🚗', 330, 185, 48]],
+      diffs: [{ i: 0, to: '🌙' }, { i: 6, to: null }, { i: 5, to: '🌻' }, { add: ['🐦', 135, 115, 36] }, { i: 4, to: '🐱' }] },
+    { name: 'ห้องคอมพิวเตอร์', bg: [['#FFF3E0', 0, 0, 400, 300], ['#D7CCC8', 0, 235, 400, 65]],
+      items: [['🖥️', 200, 120, 92], ['⌨️', 200, 215, 70], ['🖱️', 300, 218, 40], ['🪑', 75, 235, 72], ['🖼️', 335, 55, 50], ['💡', 70, 45, 42], ['📚', 330, 140, 46]],
+      diffs: [{ i: 2, to: null }, { i: 4, to: '🕰️' }, { i: 5, to: '🔦' }, { add: ['🧸', 150, 268, 40] }, { i: 6, to: '📦' }] },
+    { name: 'ใต้ทะเล', bg: [['#81D4FA', 0, 0, 400, 240], ['#FFE0B2', 0, 240, 400, 60]],
+      items: [['🐠', 100, 100, 52], ['🐙', 300, 195, 62], ['🐢', 175, 215, 52], ['🐚', 60, 265, 36], ['🌿', 365, 250, 52], ['🫧', 250, 60, 32], ['⭐', 140, 272, 34], ['🦀', 255, 268, 40]],
+      diffs: [{ i: 0, to: '🐟' }, { i: 5, to: null }, { add: ['🐳', 330, 75, 56] }, { i: 7, to: '🦞' }, { i: 6, to: null }] },
+  ];
+  const DIFFS_PER = 5;
+  let si = 0; const first = [];
+
+  function play(st) {
+    const S = SCENES[si]; const found = new Set(); let miss = 0;
+    const right = S.items.map((x) => x.slice());
+    const spots = S.diffs.map((d) => (d.add ? { x: d.add[1], y: d.add[2], r: d.add[3] * 0.75 } : { x: S.items[d.i][1], y: S.items[d.i][2], r: S.items[d.i][3] * 0.75 }));
+    S.diffs.forEach((d) => { if (d.add) right.push(d.add.slice()); else if (d.to) right[d.i][0] = d.to; else right[d.i][0] = ''; });
+    const svg = (items, side) => `<svg viewBox="0 0 400 300" data-side="${side}">${S.bg.map(([c, x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`).join('')}${items.map(([e, x, y, s]) => e ? `<text x="${x}" y="${y}" font-size="${s}" text-anchor="middle" dominant-baseline="central">${e}</text>` : '').join('')}<g class="marks"></g></svg>`;
+    st.innerHTML = `<section class="card">${KIT.dots(SCENES.length, si, first)}
+      <div class="bigshow" style="font-size:46px">👀 🔍 ✋</div><p class="saytx">ภาพ 2 ภาพนี้ต่างกัน 5 จุด แตะจุดที่ต่างกันให้ครบ</p>
+      <div class="left" id="left">${Array.from({ length: DIFFS_PER }, (_, k) => `<span>${k + 1}</span>`).join('')}</div>
+      <div class="pair"><div class="pic">${svg(S.items, 'a')}</div><div class="pic">${svg(right, 'b')}</div></div>
+      <div class="fbhost"></div></section>`;
+    const toSvg = (svgEl, e) => { const p = svgEl.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svgEl.getScreenCTM().inverse()); };
+    $$('.pic svg', st).forEach((sv) => sv.addEventListener('click', (e) => {
+      if (found.size === DIFFS_PER) return;
+      const p = toSvg(sv, e);
+      const k = spots.findIndex((s, j) => !found.has(j) && Math.hypot(p.x - s.x, p.y - s.y) <= Math.max(s.r, 26));
+      if (k >= 0) {
+        found.add(k); KIT.sfx.ok(); KIT.addScore(5);
+        $$('.pic svg .marks', st).forEach((g) => g.insertAdjacentHTML('beforeend', `<circle class="found" cx="${spots[k].x}" cy="${spots[k].y}" r="${Math.max(spots[k].r, 26)}"/>`));
+        $$('#left span', st).forEach((x, j) => x.classList.toggle('on', j < found.size));
+        if (found.size === DIFFS_PER) {
+          first[si] = miss <= 2;
+          KIT.feedback($('.fbhost', st), true, 'เจอครบ 5 จุดแล้ว!', miss <= 2 ? 'ตาไวมาก!' : 'ค่อย ๆ ดูทีละส่วน จะหาเจอเร็วขึ้น', si + 1 < SCENES.length ? 'ภาพต่อไป →' : 'ดูผล →', () => { si++; si < SCENES.length ? play(st) : KIT.end({ correct: first.filter(Boolean).length, total: SCENES.length, label: 'หาครบโดยแตะผิดไม่เกิน 2 ครั้ง', review: SCENES.map((s, j) => ({ ok: first[j], text: s.name })), lesson: 'การหาจุดต่าง ฝึก<b>สังเกต</b>และ<b>เปรียบเทียบ</b>ทีละส่วน เป็นพื้นฐานของการแก้ปัญหา เช่น หาว่าโปรแกรมหรือคำสั่งผิดตรงไหน' }); });
+        }
+      } else {
+        miss++; KIT.sfx.no();
+        const g = $('.marks', sv); g.insertAdjacentHTML('beforeend', `<text class="miss" x="${p.x}" y="${p.y}" text-anchor="middle" dominant-baseline="central">✗</text>`);
+        const t = g.lastElementChild; setTimeout(() => t.remove(), 700);
+      }
+    }));
+  }
+
+  KIT.init({
+    title: 'หาจุดต่าง', grade: 'ป.1–ป.2', subject: 'คอมพิวเตอร์', topic: 'การแก้ปัญหาอย่างง่าย (หาจุดต่างในภาพ)',
+    icon: '🔍👀', color: '#FB8C00', soft: '#FFE9D1',
+    pics: [['👀', 'ดู 2 ภาพ'], ['🔍', 'หาที่ต่าง'], ['👆', 'แตะ 5 จุด']],
+    howto: ['ดูภาพซ้ายและขวาให้ดี', 'แตะตรงที่ภาพไม่เหมือนกัน (แตะภาพไหนก็ได้) จะมีวงกลมสีแดงขึ้น', 'หาให้ครบ 5 จุด มี 3 ภาพ'],
+    start: (st) => { si = 0; first.length = 0; play(st); },
+  });
+})();
+</script>
+</body>
+</html>

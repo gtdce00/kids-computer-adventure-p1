@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ฝึกกดแป้นพิมพ์และดับเบิลคลิก</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .kc{display:inline-grid;place-items:center;min-width:84px;height:84px;padding:0 14px;border-radius:16px;background:#fff;border:3px solid var(--ink);box-shadow:0 7px 0 var(--ink);font:700 30px/1 'Mali';color:var(--ink);vertical-align:middle}
+  .kc.space{min-width:300px;font-size:24px}.kc.enter{min-width:130px}
+  .target{display:flex;justify-content:center;margin:6px 0 18px}
+  .target .kc{transform:scale(1.25);background:var(--sun)}
+  .kb{display:grid;grid-template-columns:repeat(5,auto);gap:10px;justify-content:center;align-items:end;margin-top:8px}
+  .kb .kc{min-width:70px;height:70px;font-size:26px;cursor:pointer}
+  .kb .kc.space{min-width:250px}.kb .kc.enter{min-width:110px}
+  .kb .kc.down{transform:translateY(6px);box-shadow:0 1px 0 var(--ink)}
+  .kb .kc.glow{outline:5px solid var(--grape);outline-offset:3px;animation:pop .9s infinite}
+  .kb .kc.bad{background:var(--no-soft);animation:shake .4s}
+  .gifts{display:flex;flex-wrap:wrap;gap:16px;justify-content:center}
+  .gift{width:120px;height:120px;border-radius:22px;background:#fff;border:var(--b);box-shadow:4px 4px 0 var(--ink);font-size:70px;line-height:1;user-select:none}
+  .gift.wiggle{animation:shake .4s}.gift.open{background:var(--ok-soft);border-color:var(--ok);cursor:default}
+  .bd{--s:clamp(50px,10vw,70px);display:grid;grid-template-columns:repeat(6,var(--s));grid-template-rows:repeat(4,var(--s));gap:4px;padding:8px;background:#B9E3A8;border:var(--b);border-radius:18px;margin:0 auto;width:max-content;position:relative}
+  .bd .c{background:#E8F7DE;border-radius:10px;display:grid;place-items:center;font-size:calc(var(--s)*.6)}
+  .pad{display:grid;grid-template-columns:repeat(3,70px);gap:8px;justify-content:center;margin-top:14px}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.2 คอมพิวเตอร์ ว12201 · สัปดาห์ที่ 2 การใช้งานเมาส์และแป้นพิมพ์ (ดับเบิลคลิก · กดปุ่ม Space, Enter, ลูกศร ตามภาพสัญลักษณ์) — ไม่เก็บข้อมูล ไม่มีเสียงพูด */
+(function () {
+  const { $, $$, shuffle } = KIT;
+  const K = { ' ': ['Space', '␣ Space', 'space'], Enter: ['Enter', '↵ Enter', 'enter'], ArrowLeft: ['←', '←', ''], ArrowRight: ['→', '→', ''], ArrowUp: ['↑', '↑', ''], ArrowDown: ['↓', '↓', ''] };
+  let keyHandler = null;
+  document.addEventListener('keydown', (e) => { if (keyHandler && (e.key in K)) { e.preventDefault(); keyHandler(e.key); } });
+  let good = 0, all = 0; const review = [];
+  const kbHTML = () => `<div class="kb"><span></span><span></span><span class="kc" data-key="ArrowUp">↑</span><span></span><span></span>
+      <span class="kc space" data-key=" ">␣ Space</span><span class="kc" data-key="ArrowLeft">←</span><span class="kc" data-key="ArrowDown">↓</span><span class="kc" data-key="ArrowRight">→</span><span class="kc enter" data-key="Enter">↵ Enter</span></div>`;
+
+  // ส่วนที่ 1: กดปุ่มตามภาพ
+  function partKeys(st) {
+    const list = shuffle([' ', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Enter']);
+    const res = []; let i = 0, wrong = 0, busy = false;
+    const show = () => {
+      wrong = 0; busy = false; const k = list[i];
+      st.innerHTML = `<section class="card"><p class="qtag">ส่วนที่ 1 / 3 · กดปุ่มบนแป้นพิมพ์</p>${KIT.dots(list.length, i, res)}
+        <p class="saytx">⌨️ หาปุ่มนี้บนแป้นพิมพ์ แล้วกด!</p><div class="target"><span class="kc ${K[k][2]}">${K[k][1]}</span></div>
+        ${kbHTML()}<div class="fbhost"></div></section>`;
+      $$('.kb .kc', st).forEach((b) => (b.onclick = () => press(b.dataset.key)));
+    };
+    const press = (key) => {
+      if (busy) return; const k = list[i];
+      const b = $(`.kb .kc[data-key="${CSS.escape(key)}"]`, st); if (b) { b.classList.add('down'); setTimeout(() => b.classList.remove('down'), 150); }
+      if (key === k) {
+        busy = true; res[i] = wrong === 0; if (wrong === 0) KIT.addScore(10);
+        KIT.feedback($('.fbhost', st), true, 'กดถูกแล้ว! ' + K[k][0], '', null, null);
+        KIT.later(() => { i++; if (i < list.length) show(); else { const c = res.filter(Boolean).length; good += c; all += list.length; review.push({ ok: c === list.length, text: `กดปุ่ม Space Enter ลูกศร ${c}/${list.length}` }); partDouble(st); } }, 700);
+      } else {
+        wrong++; KIT.sfx.no(); if (b) { b.classList.add('bad'); setTimeout(() => b.classList.remove('bad'), 400); }
+        if (wrong >= 2) $(`.kb .kc[data-key="${CSS.escape(k)}"]`, st).classList.add('glow');
+      }
+    };
+    keyHandler = press; show();
+  }
+
+  // ส่วนที่ 2: ดับเบิลคลิกเปิดกล่องของขวัญ
+  function partDouble(st) {
+    keyHandler = null;
+    const prizes = shuffle(['🎈', '⭐', '🧸', '🍭', '🚀']); let opened = 0, singles = 0;
+    st.innerHTML = `<section class="card"><p class="qtag">ส่วนที่ 2 / 3 · ดับเบิลคลิก</p>
+      <div class="bigshow" style="font-size:52px">👆👆 = 🎁➜🎈</div><p class="saytx">คลิก 2 ครั้งเร็ว ๆ (ดับเบิลคลิก) เพื่อเปิดกล่อง</p>
+      <div class="gifts">${prizes.map((p, k) => `<button class="gift" data-k="${k}" aria-label="กล่องของขวัญ">🎁</button>`).join('')}</div><div class="fbhost"></div></section>`;
+    $$('.gift', st).forEach((g) => {
+      let last = 0;
+      g.addEventListener('click', () => {
+        if (g.classList.contains('open')) return;
+        const now = Date.now();
+        if (now - last < 450) { g.classList.add('open'); g.textContent = prizes[Number(g.dataset.k)]; KIT.sfx.ok(); KIT.addScore(5); opened++; last = 0;
+          if (opened === prizes.length) { const ok = singles <= 6; good += ok ? 1 : 0; all++; review.push({ ok, text: 'ดับเบิลคลิกเปิดกล่องครบ 5 กล่อง' });
+            KIT.feedback($('.fbhost', st), true, 'เปิดครบทุกกล่อง!', 'ดับเบิลคลิก = คลิกเมาส์ปุ่มซ้าย 2 ครั้งติดกันเร็ว ๆ ใช้เปิดโปรแกรมหรือไฟล์', 'ไปส่วนที่ 3 →', () => partWalk(st)); }
+        } else { last = now; singles++; g.classList.add('wiggle'); setTimeout(() => g.classList.remove('wiggle'), 400); KIT.sfx.tap(); }
+      });
+    });
+  }
+
+  // ส่วนที่ 3: ใช้ปุ่มลูกศรพากระต่ายไปหาแครอท
+  function partWalk(st) {
+    const LV = [{ s: [3, 0], g: [3, 5] }, { s: [3, 0], g: [0, 0] }, { s: [0, 0], g: [3, 5] }];
+    let li = 0;
+    const level = () => {
+      const L = LV[li]; let [r, c] = L.s;
+      st.innerHTML = `<section class="card"><p class="qtag">ส่วนที่ 3 / 3 · ใช้ปุ่มลูกศร ด่าน ${li + 1} / ${LV.length}</p>
+        <p class="saytx">กดปุ่มลูกศร ← ↑ → ↓ บนแป้นพิมพ์ พา 🐰 ไปหา 🥕</p>
+        <div class="bd" id="bd">${Array.from({ length: 24 }, (_, k) => `<div class="c" data-rc="${Math.floor(k / 6)}-${k % 6}"></div>`).join('')}</div>
+        <div class="pad"><span></span><button class="kc" data-key="ArrowUp">↑</button><span></span><button class="kc" data-key="ArrowLeft">←</button><button class="kc" data-key="ArrowDown">↓</button><button class="kc" data-key="ArrowRight">→</button></div>
+        <div class="fbhost"></div></section>`;
+      const draw = () => { $$('.bd .c', st).forEach((x) => (x.textContent = '')); $(`[data-rc="${L.g[0]}-${L.g[1]}"]`, st).textContent = '🥕'; $(`[data-rc="${r}-${c}"]`, st).textContent = '🐰'; };
+      const move = (key) => {
+        const d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[key]; if (!d) return;
+        const nr = r + d[0], nc = c + d[1]; if (nr < 0 || nr > 3 || nc < 0 || nc > 5) { KIT.sfx.no(); return; }
+        r = nr; c = nc; KIT.sfx.step(); draw();
+        if (r === L.g[0] && c === L.g[1]) {
+          keyHandler = null; KIT.addScore(10);
+          KIT.feedback($('.fbhost', st), true, '🐰 ได้กิน 🥕 แล้ว!', 'ปุ่มลูกศรใช้เลื่อนตัวละครหรือเลื่อนตำแหน่งบนหน้าจอ', li + 1 < LV.length ? 'ด่านต่อไป →' : 'ดูผล →', () => { li++; if (li < LV.length) level(); else { good += 1; all += 1; review.push({ ok: true, text: 'ใช้ปุ่มลูกศรพากระต่ายครบ 3 ด่าน' }); KIT.end({ correct: good, total: all, label: 'ทำถูกตั้งแต่ครั้งแรก', review, lesson: '<b>Space</b> ␣ = เว้นวรรค · <b>Enter</b> ↵ = ตกลง/ขึ้นบรรทัดใหม่ · <b>ลูกศร</b> ← ↑ → ↓ = เลื่อนตำแหน่ง · <b>ดับเบิลคลิก</b> = คลิกซ้าย 2 ครั้งเร็ว ๆ เพื่อเปิดโปรแกรมหรือไฟล์' }); } });
+        }
+      };
+      $$('.pad .kc', st).forEach((b) => (b.onclick = () => move(b.dataset.key)));
+      keyHandler = move; draw();
+    };
+    level();
+  }
+
+  KIT.init({
+    title: 'ฝึกกดแป้นพิมพ์และดับเบิลคลิก', grade: 'ป.2', subject: 'คอมพิวเตอร์ ว12201', topic: 'การใช้งานเมาส์และแป้นพิมพ์',
+    icon: '⌨️🖱️', color: '#5B8CFF', soft: '#DFE8FF',
+    pics: [['␣', 'Space'], ['↵', 'Enter'], ['⬅️', 'ลูกศร'], ['👆👆', 'ดับเบิลคลิก']],
+    howto: ['ส่วนที่ 1: ดูภาพปุ่ม แล้วกดปุ่มนั้นบนแป้นพิมพ์ (Space, Enter, ลูกศร)', 'ส่วนที่ 2: ดับเบิลคลิก (คลิก 2 ครั้งเร็ว ๆ) เปิดกล่องของขวัญ', 'ส่วนที่ 3: กดลูกศรพากระต่ายไปหาแครอท (ใช้แท็บเล็ตก็แตะปุ่มบนจอได้)'],
+    start: (st) => { good = 0; all = 0; review.length = 0; partKeys(st); },
+  });
+})();
+</script>
+</body>
+</html>

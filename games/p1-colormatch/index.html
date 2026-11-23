@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบายสีตามแบบ</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .pair{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:16px;align-items:center}
+  @media (max-width:700px){.pair{grid-template-columns:1fr}}
+  .model,.work{border:var(--b);border-radius:20px;background:#fff;padding:8px;box-shadow:var(--pop);position:relative}
+  .model .tag,.work .tag{position:absolute;top:8px;left:10px;font:700 15px/1 'Mali';background:var(--c-soft);border-radius:10px;padding:5px 9px}
+  .model svg,.work svg{display:block;width:100%;height:auto}
+  .work [data-k]{cursor:pointer;transition:fill .15s}
+  .work [data-k]:hover{opacity:.85}
+  .work [data-k].bad{animation:shake .35s}
+  .palette{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:14px}
+  .sw{width:58px;height:58px;border-radius:50%;border:3px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
+  .sw.on{transform:scale(1.2);outline:4px solid var(--grape);outline-offset:3px}
+  .sw.glow{animation:pop .9s infinite;outline:4px dashed var(--grape);outline-offset:3px}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.1–ป.2 ฝึกวาดภาพ: ระบายสีให้เหมือนภาพตัวอย่าง (ฝึกเลือกสีและคลิกระบาย) — ไม่เก็บข้อมูล ไม่มีเสียงพูด */
+(function () {
+  const { $, $$, shuffle } = KIT;
+  const C = { r: '#E53935', o: '#FB8C00', y: '#FDD835', g: '#43A047', b: '#1E88E5', p: '#8E24AA', k: '#F06292', n: '#8D5524', d: '#212121' };
+  const PICS = [
+    { name: 'ปลา', parts: [['ellipse', 'cx="190" cy="150" rx="110" ry="70"', 'o'], ['polygon', 'points="292,150 380,80 380,220"', 'r'], ['polygon', 'points="170,86 230,36 245,96"', 'y'], ['circle', 'cx="128" cy="135" r="13"', 'd']] },
+    { name: 'บ้าน', parts: [['rect', 'x="110" y="150" width="180" height="120"', 'y'], ['polygon', 'points="88,150 200,60 312,150"', 'r'], ['rect', 'x="180" y="200" width="40" height="70"', 'n'], ['rect', 'x="125" y="172" width="38" height="36"', 'b'], ['circle', 'cx="345" cy="60" r="32"', 'o']] },
+    { name: 'ดอกไม้', parts: [['rect', 'x="192" y="170" width="16" height="115"', 'g'], ['ellipse', 'cx="245" cy="235" rx="36" ry="16"', 'g'], ['circle', 'cx="200" cy="72" r="34"', 'k'], ['circle', 'cx="200" cy="168" r="34"', 'k'], ['circle', 'cx="152" cy="120" r="34"', 'k'], ['circle', 'cx="248" cy="120" r="34"', 'k'], ['circle', 'cx="200" cy="120" r="26"', 'y']] },
+    { name: 'รถ', parts: [['rect', 'x="60" y="140" width="280" height="80" rx="16"', 'r'], ['polygon', 'points="120,140 160,85 260,85 300,140"', 'b'], ['circle', 'cx="125" cy="225" r="32"', 'd'], ['circle', 'cx="275" cy="225" r="32"', 'd'], ['circle', 'cx="325" cy="165" r="12"', 'y']] },
+    { name: 'ผีเสื้อ', parts: [['ellipse', 'cx="135" cy="105" rx="75" ry="58"', 'p'], ['ellipse', 'cx="265" cy="105" rx="75" ry="58"', 'p'], ['ellipse', 'cx="150" cy="200" rx="58" ry="45"', 'k'], ['ellipse', 'cx="250" cy="200" rx="58" ry="45"', 'k'], ['ellipse', 'cx="200" cy="150" rx="16" ry="95"', 'n']] },
+  ];
+  const svg = (P, work) => `<svg viewBox="0 0 400 300" role="img" aria-label="${P.name}">${P.parts.map(([tag, a, c], k) => `<${tag} ${a} ${work ? `data-k="${k}" fill="#fff"` : `fill="${C[c]}"`} stroke="#212121" stroke-width="5" stroke-linejoin="round"/>`).join('')}</svg>`;
+  let pi = 0, good = 0, all = 0; const review = [];
+
+  function play(st) {
+    const P = PICS[pi]; let color = null; const firstOk = {}, tried = {}; let done = false;
+    const used = [...new Set(P.parts.map((p) => p[2]))];
+    const pal = shuffle([...new Set(used.concat(shuffle(Object.keys(C).filter((k) => !used.includes(k))).slice(0, 3)))]);
+    st.innerHTML = `<section class="card">${KIT.dots(PICS.length, pi)}
+      <p class="saytx">👀 ดูภาพตัวอย่าง แล้ว 🎨 เลือกสี ➜ 👆 แตะช่องในภาพของหนู ให้เหมือนกัน</p>
+      <div class="pair"><div class="model"><span class="tag">ตัวอย่าง 👀</span>${svg(P, false)}</div><div class="work"><span class="tag">ภาพของหนู 🎨</span>${svg(P, true)}</div></div>
+      <div class="palette">${pal.map((k) => `<button class="sw" data-c="${k}" style="background:${C[k]}" aria-label="สี"></button>`).join('')}</div>
+      <div class="fbhost"></div></section>`;
+    $$('.sw', st).forEach((b) => (b.onclick = () => { color = b.dataset.c; KIT.sfx.tap(); $$('.sw', st).forEach((x) => x.classList.toggle('on', x === b)); $$('.sw', st).forEach((x) => x.classList.remove('glow')); }));
+    $$('.work [data-k]', st).forEach((el) => (el.onclick = () => {
+      if (done) return;
+      if (!color) { $$('.sw', st).forEach((x) => x.classList.add('glow')); KIT.sfx.no(); return; }
+      const k = Number(el.dataset.k), want = P.parts[k][2];
+      el.setAttribute('fill', C[color]);
+      if (!(k in tried)) { tried[k] = true; firstOk[k] = color === want; }
+      if (color === want) KIT.sfx.ok(); else { KIT.sfx.no(); el.classList.add('bad'); setTimeout(() => el.classList.remove('bad'), 350); }
+      const fin = P.parts.every((p, j) => $(`.work [data-k="${j}"]`, st).getAttribute('fill') === C[p[2]]);
+      if (fin) {
+        done = true; const c = P.parts.filter((_, j) => firstOk[j]).length; good += c; all += P.parts.length; KIT.addScore(c * 5);
+        review.push({ ok: c === P.parts.length, text: `${P.name} ระบายถูกครั้งแรก ${c}/${P.parts.length} ช่อง` });
+        KIT.feedback($('.fbhost', st), true, 'เหมือนตัวอย่างเลย!', `ระบายสี${P.name}ครบแล้ว`, pi + 1 < PICS.length ? 'ภาพต่อไป →' : 'ดูผล →', () => { pi++; pi < PICS.length ? play(st) : KIT.end({ correct: good, total: all, label: 'ระบายถูกตั้งแต่ครั้งแรก', review, lesson: 'ก่อนระบายสีให้ <b>เลือกสี</b> ก่อน แล้วจึง <b>แตะ/คลิก</b> ในช่องที่ต้องการ เหมือนการใช้ถังสีในโปรแกรมวาดภาพ ถ้าระบายผิด เลือกสีใหม่แล้วแตะซ้ำได้' }); });
+      }
+    }));
+  }
+
+  KIT.init({
+    title: 'ระบายสีตามแบบ', grade: 'ป.1–ป.2', subject: 'คอมพิวเตอร์', topic: 'ฝึกวาดภาพ (เลือกสีและระบายสี)',
+    icon: '🎨🖍️', color: '#FB8C00', soft: '#FFE9D1',
+    pics: [['👀', 'ดูตัวอย่าง'], ['🎨', 'เลือกสี'], ['👆', 'แตะช่องในภาพ']],
+    howto: ['ดูภาพตัวอย่างทางซ้าย', 'แตะวงกลมสีที่ต้องการก่อน แล้วแตะช่องในภาพของหนูทางขวา', 'ระบายให้เหมือนตัวอย่างทุกช่อง มี 5 ภาพ ระบายผิดแตะซ้ำได้'],
+    start: (st) => { pi = 0; good = 0; all = 0; review.length = 0; play(st); },
+  });
+})();
+</script>
+</body>
+</html>

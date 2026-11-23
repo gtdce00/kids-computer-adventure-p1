@@ -100,6 +100,27 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 .drag.dragging{cursor:grabbing;z-index:50;position:relative}
 [data-drop].hover{outline:4px dashed var(--grape);outline-offset:4px}
 
+/* ---------- วิธีเล่นแบบภาพ (เด็กยังอ่านไม่ได้) ---------- */
+.picsteps{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;margin-top:16px}
+.picsteps .ps{display:flex;flex-direction:column;align-items:center;min-width:104px;padding:10px 12px;border-radius:18px;background:var(--c-soft);border:2px solid var(--c)}
+.picsteps .pe{font-size:52px;line-height:1.1}
+.picsteps .pc{font-size:14px;color:var(--ink2)}
+.picsteps .arr{font-size:30px;color:var(--c)}
+
+/* ---------- เลือกภาพ ---------- */
+.bigshow{text-align:center;font-size:clamp(64px,13vw,112px);line-height:1.15;margin:4px 0 4px}
+.saytx{text-align:center;font:600 clamp(19px,2.4vw,24px)/1.4 'Mitr';margin-bottom:14px}
+.ptiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;max-width:860px;margin:0 auto}
+.ptiles.two{grid-template-columns:repeat(2,minmax(0,220px));justify-content:center}
+.ptile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:150px;padding:10px;border-radius:24px;background:#fff;border:var(--b);box-shadow:4px 4px 0 var(--ink);transition:transform .1s}
+.ptile:hover{transform:translateY(-3px)}
+.ptile .pe{font-size:68px;line-height:1.1}
+.ptile .pc{font-size:16px;line-height:1.25}
+.ptile.right{background:var(--ok-soft);border-color:var(--ok);box-shadow:4px 4px 0 var(--ok);animation:pop .4s}
+.ptile.wrong{background:var(--no-soft);border-color:var(--no);opacity:.55;animation:shake .4s}
+.ptile.glow{outline:5px solid var(--sun);outline-offset:3px;animation:pop .9s infinite}
+.ptile:disabled{cursor:default}
+
 /* ---------- คัดแยก ---------- */
 .sort-items{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;min-height:120px;margin-bottom:18px}
 .sitem{width:118px;padding:10px 6px;border-radius:18px;background:#fff;border:var(--b);box-shadow:3px 3px 0 var(--ink);text-align:center}

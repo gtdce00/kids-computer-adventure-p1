@@ -64,6 +64,7 @@
       <div class="bigicon" aria-hidden="true">${o.icon || '🎮'}</div>
       <h1>${esc(o.title)}</h1>
       <span class="pill">${esc(o.grade)} · ${esc(o.subject)}${o.topic ? ' · ' + esc(o.topic) : ''}</span>
+      ${o.pics ? `<div class="picsteps" aria-label="วิธีเล่นแบบภาพ">${o.pics.map((p, i) => `${i ? '<span class="arr" aria-hidden="true">➜</span>' : ''}<div class="ps"><span class="pe">${p[0]}</span><span class="pc">${p[1] || ''}</span></div>`).join('')}</div>` : ''}
       <ul class="howto">${(o.howto || []).map((h, i) => `<li><b>${i + 1}</b><span>${h}</span></li>`).join('')}</ul>
       <div class="row mt"><button class="btn big go" id="kStart">▶ เริ่มเล่น</button></div>
       <p class="privacy">เกมนี้ไม่ถามชื่อและไม่เก็บข้อมูลใด ๆ ของผู้เล่น เล่นเพื่อเรียนรู้ได้เลย</p>
@@ -141,6 +142,41 @@
     function finish() {
       const correct = results.filter(Boolean).length;
       KIT.end({ correct, total: rounds.length, lesson: o.lesson, review: rounds.map((r, k) => ({ ok: results[k], text: r.short || r.q.replace(/<[^>]+>/g, ' ').slice(0, 80) })) });
+    }
+    show();
+  };
+
+  /* ---------- เกมเลือกภาพ สำหรับเด็กที่ยังอ่านไม่คล่อง ----------
+     rounds: [{ show: 'ภาพ/HTML ใหญ่', say: 'คำสั่งสั้น ๆ', opts: [{ h: '🖥️', c: 'คำบรรยายสั้น', ok: true }], explain }]
+     ตอบผิดลองใหม่ได้ ผิด 2 ครั้ง ภาพที่ถูกจะกระพริบช่วย · นับถูกครั้งแรก  */
+  KIT.pick = function (host, o) {
+    const rounds = o.keepOrder ? o.rounds.slice(0, o.count || o.rounds.length) : shuffle(o.rounds.slice()).slice(0, o.count || o.rounds.length);
+    const res = []; let i = 0;
+    function show() {
+      const r = rounds[i]; let wrong = 0, done = false;
+      const opts = r.fixed ? r.opts : shuffle(r.opts.slice());
+      host.innerHTML = `<section class="card">${KIT.dots(rounds.length, i, res)}
+        <div class="bigshow">${r.show}</div>${r.say ? `<p class="saytx">${r.say}</p>` : ''}
+        <div class="ptiles ${opts.length === 2 ? 'two' : ''}">${opts.map((p, k) => `<button class="ptile" data-k="${k}" aria-label="${esc(p.c || '')}"><span class="pe">${p.h}</span>${p.c ? `<span class="pc">${p.c}</span>` : ''}</button>`).join('')}</div>
+        <div class="fbhost"></div></section>`;
+      $$('.ptile', host).forEach((b) => (b.onclick = () => {
+        if (done) return;
+        const p = opts[Number(b.dataset.k)];
+        if (p.ok) {
+          done = true; res[i] = wrong === 0; if (wrong === 0) KIT.addScore(10);
+          b.classList.add('right'); $$('.ptile', host).forEach((x) => { x.disabled = true; x.classList.remove('glow'); });
+          KIT.feedback($('.fbhost', host), true, o.okWord || 'ถูกต้อง!', r.explain || '', i + 1 < rounds.length ? 'ต่อไป →' : 'ดูผล →', () => { i++; i < rounds.length ? show() : finish(); });
+        } else {
+          wrong++; b.classList.add('wrong'); b.disabled = true;
+          if (wrong >= 2) { const k = opts.findIndex((x) => x.ok); $(`.ptile[data-k="${k}"]`, host).classList.add('glow'); }
+          KIT.sfx.no();
+        }
+      }));
+    }
+    function finish() {
+      const correct = res.filter(Boolean).length;
+      if (o.onDone) return o.onDone(correct, rounds.length, rounds.map((r, k) => ({ ok: res[k], text: r.short || '' })));
+      KIT.end({ correct, total: rounds.length, label: 'ถูกตั้งแต่ครั้งแรก', lesson: o.lesson, review: rounds.map((r, k) => ({ ok: res[k], text: r.short || '' })).filter((x) => x.text) });
     }
     show();
   };

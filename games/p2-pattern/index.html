@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>แบบรูปและการจัดกลุ่ม</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .bigshow{font-size:clamp(40px,8vw,70px);letter-spacing:4px}
+  .bigshow .q{display:inline-grid;place-items:center;width:1.2em;height:1.2em;border:4px dashed var(--ink);border-radius:16px;font:700 .7em/1 'Mali';vertical-align:middle;background:#FFF8E1}
+  .sz-s{font-size:.55em}.sz-l{font-size:1.15em}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.2 คอมพิวเตอร์ ว12201 · สัปดาห์ที่ 6 จัดกลุ่มและหาแบบรูปของภาพ (สี รูปร่าง ขนาด) — ไม่เก็บข้อมูล ไม่มีเสียงพูด */
+(function () {
+  const Q = '<span class="q">?</span>';
+  const P = [
+    ['🔴🔵🔴🔵🔴' + Q, '🔵', ['🔴', '🟢'], 'สลับ แดง-ฟ้า ต่อจากแดงจึงเป็นฟ้า'],
+    ['🍎🍌🍎🍌🍎' + Q, '🍌', ['🍎', '🍇'], 'สลับ แอปเปิล-กล้วย'],
+    ['⭐⭐🌙⭐⭐🌙⭐⭐' + Q, '🌙', ['⭐', '☀️'], 'ดาว 2 ดวง แล้วตามด้วยพระจันทร์'],
+    ['🔺🟦⚪🔺🟦' + Q, '⚪', ['🔺', '🟦'], 'สามเหลี่ยม สี่เหลี่ยม วงกลม ซ้ำไปเรื่อย ๆ'],
+    ['🐱🐶🐰🐱🐶' + Q, '🐰', ['🐱', '🐶'], 'แมว หมา กระต่าย ซ้ำกัน'],
+    ['<span class="sz-s">🐘</span><span class="sz-l">🐘</span><span class="sz-s">🐘</span><span class="sz-l">🐘</span><span class="sz-s">🐘</span>' + Q, '<span class="sz-l">🐘</span>', ['<span class="sz-s">🐘</span>', '🐭'], 'เล็ก-ใหญ่ สลับกัน ต่อจากตัวเล็กจึงเป็นตัวใหญ่'],
+    ['🟡🟡🟢🟡🟡🟢🟡🟡' + Q, '🟢', ['🟡', '🔴'], 'เหลือง 2 แล้วเขียว 1'],
+  ];
+  const ODD = [
+    ['🍓🍎🌹🍋', '🍋', 'สีแดงเหมือนกัน ยกเว้นมะนาวสีเหลือง'],
+    ['⚽🏀🍊📦', '📦', 'กลมเหมือนกัน ยกเว้นกล่องเป็นสี่เหลี่ยม'],
+    ['🐶🐱🐰🚗', '🚗', 'เป็นสัตว์ ยกเว้นรถ'],
+    ['🖥️⌨️🖱️🍌', '🍌', 'เป็นอุปกรณ์คอมพิวเตอร์ ยกเว้นกล้วย'],
+  ];
+  const rounds = P.map(([show, ans, wrong, why]) => ({ show, say: 'ช่อง ? ต่อไปคืออะไร?', opts: [{ h: ans, ok: true }, ...wrong.map((w) => ({ h: w, ok: false }))], explain: why, short: 'แบบรูป: ' + why }))
+    .concat(ODD.map(([s, ans, why]) => ({ show: s, say: 'อันไหน ไม่เข้าพวก?', opts: [], raw: [s, ans], explain: why, short: 'ไม่เข้าพวก: ' + why })));
+  // แยกอีโมจิทีละตัว (รองรับอีโมจิหลายจุดรหัส)
+  const seg = (s) => (window.Intl && Intl.Segmenter ? [...new Intl.Segmenter('th', { granularity: 'grapheme' }).segment(s)].map((x) => x.segment) : Array.from(s));
+  rounds.forEach((r) => { if (r.raw) { r.opts = seg(r.raw[0]).map((e) => ({ h: e, ok: e === r.raw[1] })); delete r.raw; } });
+  const SORT = [['🍓', 'r'], ['🍎', 'r'], ['🚒', 'r'], ['🌹', 'r'], ['🫐', 'b'], ['🐳', 'b'], ['💧', 'b'], ['🧢', 'b']];
+  KIT.init({
+    title: 'แบบรูปและการจัดกลุ่ม', grade: 'ป.2', subject: 'คอมพิวเตอร์ ว12201', topic: 'จัดกลุ่มและหาแบบรูปของภาพ',
+    icon: '🔴🔵🔴❓', color: '#8E24AA', soft: '#F1E3F8',
+    pics: [['🔴🔵🔴', 'ดูแบบรูป'], ['❓', 'หาตัวต่อไป'], ['🧺', 'จัดกลุ่มตามสี']],
+    howto: ['ดูภาพที่เรียงกัน หาว่าซ้ำกันอย่างไร แล้วแตะภาพที่ต่อในช่อง ?', 'บางข้อให้หาภาพที่ไม่เข้าพวก', 'ด่านสุดท้าย ลากภาพแยกตามสี แดง / ฟ้า'],
+    start: (st) => KIT.pick(st, { rounds, count: 8, onDone: (c, t, rev) => {
+      KIT.sortGame(st, { tag: 'ด่านสุดท้าย · จัดกลุ่มตามสี', prompt: 'ลากภาพไปใส่กล่อง 🔴 สีแดง หรือ 🔵 สีฟ้า', items: SORT.map(([icon, bin]) => ({ icon, name: '', bin, why: bin === 'r' ? 'สีแดง' : 'สีฟ้า' })),
+        bins: [{ id: 'r', label: 'สีแดง', icon: '🔴', color: '#E53935' }, { id: 'b', label: 'สีฟ้า', icon: '🔵', color: '#1E88E5' }],
+        onDone: (c2, t2) => KIT.end({ correct: c + c2, total: t + t2, label: 'ถูกตั้งแต่ครั้งแรก', review: rev.concat([{ ok: c2 === t2, text: `จัดกลุ่มตามสี ${c2}/${t2}` }]), lesson: '<b>แบบรูป</b> คือ สิ่งที่เรียงซ้ำกันอย่างมีกฎ เช่น สลับสี สลับรูปร่าง เล็ก-ใหญ่ · <b>การจัดกลุ่ม</b> คือ แยกสิ่งของตามลักษณะที่เหมือนกัน เช่น สี รูปร่าง ขนาด' }) });
+    } }),
+  });
+})();
+</script>
+</body>
+</html>
