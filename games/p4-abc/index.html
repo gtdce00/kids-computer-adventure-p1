@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ABC Spelling Quest</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+  .mcard{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:18px;border-radius:22px;background:#fff;border:var(--b);box-shadow:4px 4px 0 var(--ink);font:inherit;color:var(--ink);cursor:pointer}
+  .mcard:hover{transform:translateY(-3px)}
+  .mcard .mi{font-size:44px;line-height:1}.mcard b{font-size:21px}.mcard small{font-size:15px;color:var(--ink2);line-height:1.4}
+  .mcard.all{grid-column:1/-1;flex-direction:row;align-items:center;gap:14px;background:var(--c-soft)}
+  .big{display:inline-block;margin-top:8px;padding:4px 22px;border-radius:18px;background:var(--c-soft);border:3px solid var(--ink);font:700 clamp(40px,7vw,64px)/1.2 'Mali',sans-serif;letter-spacing:4px}
+  .emo{font-size:clamp(64px,10vw,96px);line-height:1.1;display:block}
+  .th{display:inline-block;margin-top:4px;padding:2px 12px;border-radius:999px;background:#fff;border:2px solid var(--c);font-size:17px}
+  .seq{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+  .seq span{width:58px;height:58px;border:3px solid var(--ink);border-radius:14px;display:grid;place-items:center;font:700 32px/1 'Mali';background:#fff}
+  .seq span.q{border-style:dashed;background:var(--c-soft)}
+  .choices.letters .choice{justify-content:center;font:700 34px/1 'Mali'}
+  .choices.letters .choice .k{display:none}
+  .choice .en{font:700 24px/1.2 'Mali'}
+  /* สะกดคำ */
+  .slots{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+  .slot{width:60px;height:68px;border:3px dashed var(--ink);border-radius:14px;display:grid;place-items:center;font:700 36px/1 'Mali';background:#fff;cursor:pointer;color:var(--ink)}
+  .slot.full{border-style:solid;background:var(--c-soft)}
+  .slot.ok{background:var(--ok-soft);border-color:var(--ok)}
+  .slot.bad{background:var(--no-soft);border-color:var(--no);animation:shake .4s}
+  .tiles{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:6px}
+  .tile{width:62px;height:62px;border-radius:14px;background:#fff;border:var(--b);box-shadow:3px 3px 0 var(--ink);font:700 32px/1 'Mali';cursor:pointer;color:var(--ink)}
+  .tile:disabled{opacity:.25;cursor:default;box-shadow:none}
+  .tile:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .tip{font-size:15px;color:var(--ink2);margin-top:10px;text-align:center}
+  .fb .tx span b{display:inline;font:inherit;font-weight:700}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.4 ภาษาอังกฤษ · Alphabet & Spelling ตัวอักษรและการสะกดคำ — โจทย์สุ่มใหม่ทุกครั้ง · ไม่เก็บข้อมูลผู้เล่น */
+(function () {
+  const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const WORDS = [
+    ['apple', '🍎', 'แอปเปิล'], ['ant', '🐜', 'มด'], ['ball', '⚽', 'ลูกบอล'], ['bag', '🎒', 'กระเป๋า'], ['bee', '🐝', 'ผึ้ง'], ['book', '📖', 'หนังสือ'], ['bird', '🐦', 'นก'], ['bus', '🚌', 'รถบัส'], ['bed', '🛏️', 'เตียง'],
+    ['cat', '🐱', 'แมว'], ['car', '🚗', 'รถยนต์'], ['cake', '🍰', 'เค้ก'], ['cow', '🐮', 'วัว'], ['clock', '🕐', 'นาฬิกา'], ['dog', '🐶', 'สุนัข'], ['duck', '🦆', 'เป็ด'], ['door', '🚪', 'ประตู'],
+    ['egg', '🥚', 'ไข่'], ['eye', '👁️', 'ตา'], ['fish', '🐟', 'ปลา'], ['frog', '🐸', 'กบ'], ['grape', '🍇', 'องุ่น'], ['goat', '🐐', 'แพะ'], ['hat', '🎩', 'หมวก'], ['hand', '✋', 'มือ'], ['house', '🏠', 'บ้าน'],
+    ['ice', '🧊', 'น้ำแข็ง'], ['juice', '🧃', 'น้ำผลไม้'], ['key', '🔑', 'กุญแจ'], ['kite', '🪁', 'ว่าว'], ['lion', '🦁', 'สิงโต'], ['leaf', '🍃', 'ใบไม้'], ['milk', '🥛', 'นม'], ['moon', '🌙', 'ดวงจันทร์'], ['nose', '👃', 'จมูก'], ['nest', '🪺', 'รังนก'],
+    ['orange', '🍊', 'ส้ม'], ['owl', '🦉', 'นกฮูก'], ['pen', '🖊️', 'ปากกา'], ['pig', '🐷', 'หมู'], ['queen', '👸', 'ราชินี'], ['rice', '🍚', 'ข้าว'], ['rabbit', '🐰', 'กระต่าย'], ['sun', '☀️', 'ดวงอาทิตย์'], ['star', '⭐', 'ดาว'], ['ship', '🚢', 'เรือ'],
+    ['tree', '🌳', 'ต้นไม้'], ['train', '🚆', 'รถไฟ'], ['umbrella', '☂️', 'ร่ม'], ['van', '🚐', 'รถตู้'], ['water', '💧', 'น้ำ'], ['watch', '⌚', 'นาฬิกาข้อมือ'], ['box', '📦', 'กล่อง'], ['yo-yo', '🪀', 'โยโย่'], ['zebra', '🦓', 'ม้าลาย'],
+  ].filter((w) => /^[a-z]+$/.test(w[0]));
+  /* ตัวอักษรที่หน้าตาคล้ายกัน ใช้เป็นตัวลวง */
+  const LOOK = ['bdpq', 'mnuwh', 'ijlt', 'aeoc', 'gqy', 'vwy', 'szx', 'fth', 'kx', 'rn'];
+  const lookalikes = (ch) => { const g = LOOK.filter((s) => s.includes(ch)).join(''); return [...new Set(g.replace(ch, ''))]; };
+  function letterChoices(correct, upper) {
+    const lo = correct.toLowerCase(); const pool = KIT.shuffle(lookalikes(lo)); const out = [lo];
+    for (const c of pool) if (out.length < 4 && !out.includes(c)) out.push(c);
+    while (out.length < 4) { const c = pick(ABC).toLowerCase(); if (!out.includes(c)) out.push(c); }
+    return upper ? out.map((c) => c.toUpperCase()) : out;
+  }
+
+  /* ---------- ด่าน 1: ตัวพิมพ์ใหญ่-เล็ก ---------- */
+  function qCase() {
+    const L = pick(ABC), toSmall = Math.random() < 0.6;
+    const ch = letterChoices(L, !toSmall);
+    return toSmall
+      ? { q: `ตัวพิมพ์<b>เล็ก</b>ของตัวนี้คือข้อใด?<br><span class="big">${L}</span>`, choices: ch, answer: 0, letters: true, explain: `ตัวพิมพ์ใหญ่ ${L} คู่กับตัวพิมพ์เล็ก ${L.toLowerCase()}`, short: `${L} — ${L.toLowerCase()}` }
+      : { q: `ตัวพิมพ์<b>ใหญ่</b>ของตัวนี้คือข้อใด?<br><span class="big">${L.toLowerCase()}</span>`, choices: ch, answer: 0, letters: true, explain: `ตัวพิมพ์เล็ก ${L.toLowerCase()} คู่กับตัวพิมพ์ใหญ่ ${L}`, short: `${L.toLowerCase()} — ${L}` };
+  }
+
+  /* ---------- ด่าน 2: ลำดับตัวอักษร A–Z ---------- */
+  function qOrder() {
+    const t = R(0, 2), small = Math.random() < 0.4, f = (c) => (small ? c.toLowerCase() : c);
+    if (t === 0) {
+      const s = R(0, 21), miss = R(1, 3), seq = ABC.slice(s, s + 5).split(''), ans = seq[miss];
+      const others = [ABC[s + miss + 1], ABC[Math.max(0, s + miss - 2)], ABC[(s + miss + 5) % 26], ABC[(s + miss + 9) % 26]];
+      const ch = [ans, ...others.filter((x, k, a) => x !== ans && a.indexOf(x) === k)].slice(0, 4);
+      return { q: `ตัวอักษรที่หายไปคือตัวใด?<div class="seq">${seq.map((c, k) => (k === miss ? '<span class="q">?</span>' : `<span>${f(c)}</span>`)).join('')}</div>`, choices: ch.map(f), answer: 0, letters: true, explain: `เรียงตามลำดับ: ${seq.map(f).join(' ')}`, short: `${seq.map(f).join(' ')}` };
+    }
+    const after = t === 1, i = after ? R(0, 24) : R(1, 25), ans = ABC[after ? i + 1 : i - 1];
+    const others = [ABC[after ? i - 1 : i + 1], ABC[(i + 2) % 26], ABC[(i + 24) % 26], ABC[(i + 7) % 26]];
+    const ch = [ans, ...others.filter((x, k, a) => x !== ans && x !== ABC[i] && a.indexOf(x) === k)].slice(0, 4);
+    return { q: `ตัวอักษรที่อยู่<b>${after ? 'ถัดไป (หลัง)' : 'ก่อนหน้า'}</b> ตัวนี้คือตัวใด?<br><span class="big">${f(ABC[i])}</span>`, choices: ch.map(f), answer: 0, letters: true, explain: `${after ? `${f(ABC[i])} → ${f(ans)}` : `${f(ans)} → ${f(ABC[i])}`} (A B C ... ${ABC.slice(Math.max(0, i - 2), i + 3).split('').map(f).join(' ')} ...)`, short: `${after ? 'หลัง' : 'ก่อน'} ${f(ABC[i])} คือ ${f(ans)}` };
+  }
+
+  /* ---------- ด่าน 3: เสียงต้นคำ / ตัวอักษรตัวแรก ---------- */
+  function qFirst() {
+    const [w, e, th] = pick(WORDS), L = w[0];
+    const ch = letterChoices(L, false);
+    return { q: `<span class="emo">${e}</span><span class="th">${th}</span><br><div class="seq"><span class="q">?</span>${w.slice(1).split('').map((c) => `<span>${c}</span>`).join('')}</div><div>เติมตัวอักษรตัวแรกให้ถูกต้อง</div>`, choices: ch, answer: 0, letters: true, explain: `${e} ${th} = <b>${w}</b> ขึ้นต้นด้วยตัว ${L.toUpperCase()} ${L}`, short: `${e} ${w}` };
+  }
+
+  /* ---------- ด่าน 4: เรียงคำตามตัวอักษร ---------- */
+  function qAbcWords() {
+    const set = []; const used = new Set();
+    for (const w of KIT.shuffle(WORDS.slice())) { if (!used.has(w[0][0])) { used.add(w[0][0]); set.push(w); } if (set.length === 4) break; }
+    const first = Math.random() < 0.6;
+    const sorted = set.slice().sort((a, b) => a[0].localeCompare(b[0]));
+    const target = first ? sorted[0] : sorted[3];
+    const ch = [target, ...set.filter((x) => x !== target)];
+    return { q: `เรียงตามลำดับตัวอักษร A–Z แล้ว คำใดอยู่<b>${first ? 'แรกสุด' : 'ท้ายสุด'}</b>?`, choices: ch.map((w) => `<span class="en">${w[0]}</span> ${w[1]}`), answer: 0, explain: `ดูตัวอักษรตัวแรก: ${sorted.map((w) => `<b>${w[0][0].toUpperCase()}</b>${w[0].slice(1)}`).join(' → ')}`, short: `${first ? 'แรกสุด' : 'ท้ายสุด'}: ${target[0]}` };
+  }
+
+  /* ---------- ด่าน 5: สะกดคำ (แตะตัวอักษรเรียงเป็นคำ) ---------- */
+  function spell(host) {
+    const list = KIT.shuffle(WORDS.filter((w) => w[0].length <= 6)).slice(0, 6);
+    const res = [], review = []; let i = 0;
+    function show() {
+      const [w, e, th] = list[i]; const N = w.length;
+      let extra = ''; while (extra.length < 2) { const c = pick(ABC).toLowerCase(); if (!w.includes(c) && !extra.includes(c)) extra += c; }
+      const tiles = KIT.shuffle((w + extra).split('').map((c, k) => ({ c, k })));
+      const slot = Array(N).fill(null); let tries = 0, done = false;
+      host.innerHTML = `<section class="card">${KIT.dots(list.length, i, res)}<p class="qtag">คำที่ ${i + 1} / ${list.length}</p>
+        <div class="prompt"><span class="emo">${e}</span><span class="th">${th}</span><br>สะกดคำภาษาอังกฤษให้ถูกต้อง (${N} ตัวอักษร)</div>
+        <div class="slots">${slot.map((_, k) => `<button class="slot" data-s="${k}" aria-label="ช่องที่ ${k + 1}"></button>`).join('')}</div>
+        <div class="tiles">${tiles.map((t, k) => `<button class="tile" data-t="${k}">${t.c}</button>`).join('')}</div>
+        <p class="tip">แตะตัวอักษรเรียงทีละตัว · แตะช่องเพื่อเอาออก · พิมพ์บนแป้นพิมพ์ก็ได้</p>
+        <div class="fbhost"></div></section>`;
+      const $s = (k) => host.querySelector(`.slot[data-s="${k}"]`), $t = (k) => host.querySelector(`.tile[data-t="${k}"]`);
+      const draw = () => slot.forEach((t, k) => { const el = $s(k); el.textContent = t == null ? '' : tiles[t].c; el.classList.toggle('full', t != null); });
+      function put(tk) {
+        if (done) return; const k = slot.indexOf(null); if (k < 0) return;
+        slot[k] = tk; $t(tk).disabled = true; KIT.sfx.step(); draw();
+        if (!slot.includes(null)) check();
+      }
+      function take(k) { if (done || slot[k] == null) return; $t(slot[k]).disabled = false; slot[k] = null; KIT.sfx.tap(); draw(); }
+      function check() {
+        const got = slot.map((t) => tiles[t].c).join('');
+        if (got === w) {
+          done = true; res[i] = tries === 0; if (tries === 0) KIT.addScore(10);
+          review.push({ ok: tries === 0, text: `${e} ${w} (${th})` });
+          slot.forEach((_, k) => $s(k).classList.add('ok')); host.querySelectorAll('.tile').forEach((b) => (b.disabled = true));
+          document.removeEventListener('keydown', onKey);
+          KIT.feedback(host.querySelector('.fbhost'), true, pick(['Great!', 'Excellent!', 'Well done!']), `${e} ${th} สะกดว่า <b>${w.toUpperCase().split('').join(' - ')}</b>`, i + 1 < list.length ? 'คำต่อไป →' : 'ดูผล →', () => { i++; i < list.length ? show() : finish(); });
+        } else {
+          tries++; KIT.sfx.no();
+          const fb = host.querySelector('.fbhost'); fb.innerHTML = '';
+          KIT.feedback(fb, false, 'ยังไม่ถูกนะ ลองใหม่', tries >= 2 ? `คำใบ้: ขึ้นต้นด้วยตัว <b>${w[0]}</b> และลงท้ายด้วยตัว <b>${w[N - 1]}</b>` : 'ตัวที่ผิดตำแหน่งจะถูกนำออก ลองเรียงใหม่');
+          slot.forEach((t, k) => { if (tiles[t].c !== w[k]) $s(k).classList.add('bad'); });
+          KIT.later(() => { slot.forEach((t, k) => { $s(k).classList.remove('bad'); if (t != null && tiles[t].c !== w[k]) { $t(t).disabled = false; slot[k] = null; } }); draw(); }, 650);
+        }
+      }
+      host.querySelectorAll('.tile').forEach((b) => (b.onclick = () => put(+b.dataset.t)));
+      host.querySelectorAll('.slot').forEach((b) => (b.onclick = () => take(+b.dataset.s)));
+      function onKey(ev) {
+        if (!document.body.contains(host.querySelector('.slots'))) return document.removeEventListener('keydown', onKey);
+        if (ev.key === 'Backspace') { ev.preventDefault(); const k = slot.map((t) => t != null).lastIndexOf(true); if (k >= 0) take(k); return; }
+        const c = ev.key.toLowerCase(); if (!/^[a-z]$/.test(c)) return;
+        const tk = tiles.findIndex((t, k) => t.c === c && !$t(k).disabled); if (tk >= 0) put(tk);
+      }
+      document.addEventListener('keydown', onKey);
+    }
+    function finish() {
+      KIT.end({ correct: res.filter(Boolean).length, total: list.length, label: 'สะกดถูกตั้งแต่ครั้งแรก', lesson: 'การสะกดคำ คือ การเรียงตัวอักษรให้ถูกลำดับ ลองออกเสียงคำช้า ๆ แล้วนึกว่าแต่ละเสียงใช้ตัวอักษรอะไร เช่น c-a-t = cat', review });
+    }
+    show();
+  }
+
+  const MODES = [
+    { icon: '🔠', name: 'ตัวพิมพ์ใหญ่-เล็ก', sub: 'Capital & small letters', gen: qCase, lesson: 'ตัวอักษรภาษาอังกฤษมี 26 ตัว แต่ละตัวมี<b>ตัวพิมพ์ใหญ่</b> (A B C) และ<b>ตัวพิมพ์เล็ก</b> (a b c) ระวังตัวที่หน้าตาคล้ายกัน เช่น b d p q' },
+    { icon: '🔤', name: 'ลำดับตัวอักษร A–Z', sub: 'ตัวที่หายไป ตัวก่อน-หลัง', gen: qOrder, lesson: 'ลำดับตัวอักษร: A B C D E F G H I J K L M N O P Q R S T U V W X Y Z' },
+    { icon: '🐟', name: 'ตัวอักษรตัวแรกของคำ', sub: 'ดูภาพ เติมตัวแรกของคำ', gen: qFirst, lesson: 'คำศัพท์แต่ละคำขึ้นต้นด้วยตัวอักษรที่ให้เสียงแรกของคำ เช่น <b>f</b>ish ปลา · <b>b</b>ook หนังสือ' },
+    { icon: '📚', name: 'เรียงคำตาม A–Z', sub: 'คำไหนมาก่อน มาหลัง', gen: qAbcWords, lesson: 'การเรียงคำตามลำดับตัวอักษร (เหมือนในพจนานุกรม) ให้ดูตัวอักษร<b>ตัวแรก</b>ของคำ แล้วเรียงตาม A–Z' },
+  ];
+  const lessonAll = MODES.map((m) => '• ' + m.lesson).join('<br>');
+
+  function play(host, mode) {
+    const gens = mode ? [mode.gen] : MODES.map((m) => m.gen), count = mode ? 8 : 10, rounds = [];
+    for (let k = 0; k < count; k++) rounds.push(gens[mode ? 0 : k % gens.length]());
+    KIT.mcq(host, { rounds, count, lesson: mode ? mode.lesson : lessonAll, okWord: pick(['Great!', 'Correct!', 'Good job!']) });
+    const fix = () => { const r = host.querySelector('.choices'); if (r && [...r.querySelectorAll('.choice span:last-child')].every((s) => s.textContent.length === 1)) r.classList.add('letters'); };
+    fix(); new MutationObserver(fix).observe(host, { childList: true });
+  }
+
+  function menu(host) {
+    host.innerHTML = `<section class="card"><h2 class="head" style="text-align:center">Choose a level · เลือกด่าน</h2>
+      <p style="text-align:center;margin:4px 0 16px">โจทย์สุ่มใหม่ทุกครั้ง ฝึกซ้ำได้ไม่ซ้ำเดิม</p>
+      <div class="menu">${MODES.map((m, k) => `<button class="mcard" data-i="${k}"><span class="mi">${m.icon}</span><b>ด่าน ${k + 1} ${m.name}</b><small>${m.sub} · 8 ข้อ</small></button>`).join('')}
+      <button class="mcard" data-i="spell"><span class="mi">✏️</span><b>ด่าน 5 สะกดคำ</b><small>แตะตัวอักษรเรียงเป็นคำ · 6 คำ</small></button>
+      <button class="mcard all" data-i="all"><span class="mi">🏆</span><span><b>ด่านท้าทาย รวมทุกเรื่อง</b><br><small>10 ข้อ คละด่าน 1–4</small></span></button></div></section>`;
+    KIT.$$('.mcard', host).forEach((b) => (b.onclick = () => {
+      KIT.sfx.tap(); KIT.resetScore(); const v = b.dataset.i;
+      if (v === 'spell') spell(host); else play(host, v === 'all' ? null : MODES[+v]);
+    }));
+  }
+
+  KIT.init({
+    title: 'ABC Spelling Quest', grade: 'ป.4', subject: 'ภาษาอังกฤษ', topic: 'Alphabet & Spelling ตัวอักษรและการสะกดคำ',
+    icon: '🔤✏️', color: '#8B6CFF', soft: '#ECE6FF',
+    howto: ['เลือกด่านที่อยากฝึก (มี 5 ด่าน + ด่านท้าทาย)', 'ดูภาพและโจทย์ แล้วกดเลือกคำตอบ หรือแตะตัวอักษรสะกดคำ', 'อ่านคำอธิบายหลังตอบ โจทย์สุ่มใหม่ทุกครั้งที่เล่น'],
+    start: menu,
+  });
+})();
+</script>
+</body>
+</html>

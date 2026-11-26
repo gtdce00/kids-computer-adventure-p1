@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>นักผจญภัยจำนวนใหญ่</title>
+<link rel="stylesheet" href="../kit/kit.css">
+<style>
+  .menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+  .mcard{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:18px;border-radius:22px;background:#fff;border:var(--b);box-shadow:4px 4px 0 var(--ink);font:inherit;color:var(--ink);cursor:pointer}
+  .mcard:hover{transform:translateY(-3px)}
+  .mcard .mi{font-size:44px;line-height:1}.mcard b{font-size:21px}.mcard small{font-size:15px;color:var(--ink2);line-height:1.4}
+  .mcard.all{grid-column:1/-1;flex-direction:row;align-items:center;gap:14px;background:var(--c-soft)}
+  .num{display:inline-block;margin-top:10px;padding:8px 22px;border-radius:18px;background:var(--c-soft);border:3px solid var(--ink);font:700 clamp(34px,6vw,54px)/1.2 'Mali',sans-serif;letter-spacing:2px}
+  .num .hl{color:#fff;background:var(--no);border-radius:10px;padding:0 6px}
+  .sm-num{font:700 30px/1.3 'Mali',sans-serif}
+  .pv{display:inline-table;border-collapse:collapse;margin:6px 0;font-size:15px}
+  .pv td{border:2px solid var(--ink);padding:2px 7px;text-align:center;background:#fff}
+  .pv tr:first-child td{background:#FFF3E0;font-size:13px}
+  .pv td.on{background:#FFD8A8;font-weight:700}
+  .cmp{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:10px}
+  .cmp .box{width:68px;height:68px;border:3px dashed var(--ink);border-radius:16px;display:grid;place-items:center;font:700 34px/1 'Mali'}
+  .choices.sym .choice{justify-content:center;font:700 34px/1 'Mali'}
+  .choices.sym .choice .k{display:none}
+  .fb .tx span b{display:inline;font:inherit;font-weight:700}
+</style>
+</head>
+<body>
+<script src="../kit/kit.js"></script>
+<script>
+/* ป.4 คณิตศาสตร์ · บทที่ 1 จำนวนนับที่มากกว่า 100,000 — โจทย์สุ่มใหม่ทุกครั้ง · ไม่เก็บข้อมูลผู้เล่น */
+(function () {
+  const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const fmt = (n) => n.toLocaleString('en-US');
+  const PLACE = ['หน่วย', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+  const DIG = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+  const TH = '๐๑๒๓๔๕๖๗๘๙';
+  const thaiDigits = (s) => String(s).replace(/\d/g, (d) => TH[d]);
+
+  /* อ่านจำนวนเป็นตัวหนังสือภาษาไทย */
+  function words6(k) {
+    const s = String(k); let out = '';
+    for (let i = 0; i < s.length; i++) {
+      const d = +s[i], p = s.length - 1 - i;
+      if (!d) continue;
+      if (p === 1) out += d === 1 ? 'สิบ' : d === 2 ? 'ยี่สิบ' : DIG[d] + 'สิบ';
+      else if (p === 0) out += d === 1 && k >= 10 ? 'เอ็ด' : DIG[d];
+      else out += DIG[d] + PLACE[p];
+    }
+    return out;
+  }
+  function words(n) {
+    if (!n) return 'ศูนย์';
+    const m = Math.floor(n / 1e6), r = n % 1e6;
+    return (m ? words6(m) + 'ล้าน' : '') + (r ? words6(r) : '');
+  }
+  const expand = (n) => String(n).split('').map((d, i, a) => d * 10 ** (a.length - 1 - i)).filter(Boolean).map(fmt).join(' + ');
+  const pvTable = (n, on) => { const s = String(n); return `<table class="pv"><tr>${s.split('').map((_, i) => `<td class="${s.length - 1 - i === on ? 'on' : ''}">${PLACE[s.length - 1 - i]}</td>`).join('')}</tr><tr>${s.split('').map((d, i) => `<td class="${s.length - 1 - i === on ? 'on' : ''}">${d}</td>`).join('')}</tr></table>`; };
+
+  /* สุ่มจำนวน len หลัก (หลักแรกไม่เป็น 0) โอกาสมี 0 ปนบ้าง */
+  function rnd(len, zeroRate) {
+    let s = String(R(1, 9));
+    for (let i = 1; i < len; i++) s += Math.random() < (zeroRate ?? 0.2) ? '0' : String(R(1, 9));
+    return +s;
+  }
+  /* สร้างตัวเลือกไม่ซ้ำ: ตัวแรกถูก */
+  function uniqueChoices(correct, makers, need) {
+    const out = [correct]; let guard = 0;
+    while (out.length < (need || 4) && guard++ < 200) { const v = makers[guard % makers.length](); if (v != null && !out.includes(v)) out.push(v); }
+    return out;
+  }
+  /* ย้ายตัวเลขหนึ่งตัวไปผิดหลัก / สลับเลขสองตัว */
+  function mutate(n) {
+    const a = String(n).split(''), i = R(0, a.length - 1), j = R(0, a.length - 1);
+    const t = Math.random();
+    if (t < 0.4 && i !== j && a[i] !== a[j]) { [a[i], a[j]] = [a[j], a[i]]; if (a[0] === '0') return null; return +a.join(''); }
+    if (t < 0.7) { a[i] = String((+a[i] + R(1, 8)) % 10); if (a[0] === '0') return null; return +a.join(''); }
+    if (t < 0.85 && a.length < 7) { a.splice(i + 1, 0, '0'); return +a.join(''); }
+    const z = a.indexOf('0', 1); if (z > 0) { a.splice(z, 1); return +a.join(''); }
+    return null;
+  }
+
+  /* ---------- ด่าน 1: หลักและค่าประจำหลัก ---------- */
+  function qPlace() {
+    const n = rnd(R(6, 7), 0.15), s = String(n);
+    const nz = s.split('').map((d, i) => (d !== '0' ? i : -1)).filter((i) => i >= 0);
+    const idx = pick(nz), p = s.length - 1 - idx, d = +s[idx];
+    const shown = `<span class="num">${s.split('').map((c, i) => (i === idx ? `<span class="hl">${c}</span>` : c)).join('')}</span>`;
+    const tbl = pvTable(n, p);
+    if (Math.random() < 0.5) {
+      const ch = uniqueChoices(PLACE[p], [() => PLACE[R(0, 6)]]);
+      return { q: `เลข <b>${d}</b> ที่ระบายสี อยู่ในหลักใด?<br>${shown}`, choices: ch.map((x) => 'หลัก' + x), answer: 0, explain: `${tbl}<br>เลข ${d} อยู่หลัก${PLACE[p]}`, short: `${fmt(n)} → เลข ${d} อยู่หลัก${PLACE[p]}` };
+    }
+    const val = d * 10 ** p;
+    const ch = uniqueChoices(val, [() => d * 10 ** Math.min(6, p + 1), () => d * 10 ** Math.max(0, p - 1), () => d, () => d * 10 ** R(0, 6)]);
+    return { q: `เลข <b>${d}</b> ที่ระบายสี มีค่าเท่าใด?<br>${shown}`, choices: ch.map(fmt), answer: 0, explain: `${tbl}<br>เลข ${d} อยู่หลัก${PLACE[p]} จึงมีค่า ${fmt(val)}`, short: `${fmt(n)} → เลข ${d} มีค่า ${fmt(val)}` };
+  }
+
+  /* ---------- ด่าน 2: อ่านและเขียนตัวเลข ---------- */
+  function qRead() {
+    const n = rnd(R(6, 7), 0.3), t = R(0, 2);
+    const others = () => mutate(n);
+    if (t === 0) { // ตัวเลข → ตัวหนังสือ
+      const ch = uniqueChoices(n, [others]);
+      return { q: `<span class="num">${fmt(n)}</span><br>อ่านว่าอย่างไร?`, choices: ch.map(words), answer: 0, oneCol: true, explain: `${fmt(n)} อ่านว่า ${words(n)}`, short: `${fmt(n)} อ่านว่า ${words(n)}` };
+    }
+    if (t === 1) { // ตัวหนังสือ → ตัวเลข
+      const ch = uniqueChoices(n, [others]);
+      return { q: `<b>${words(n)}</b><br>เขียนเป็นตัวเลขฮินดูอารบิกได้อย่างไร?`, choices: ch.map(fmt), answer: 0, explain: `${words(n)} เขียนเป็น ${fmt(n)} <br>(ตำแหน่งที่ไม่ได้อ่าน ให้ใส่ 0)`, short: `${words(n)} = ${fmt(n)}` };
+    }
+    const ch = uniqueChoices(n, [others]); // ฮินดูอารบิก → ไทย
+    return { q: `<span class="num">${fmt(n)}</span><br>เขียนเป็นตัวเลขไทยได้อย่างไร?`, choices: ch.map((x) => thaiDigits(fmt(x))), answer: 0, explain: `${fmt(n)} เขียนเป็นตัวเลขไทยได้ ${thaiDigits(fmt(n))}`, short: `${fmt(n)} = ${thaiDigits(fmt(n))}` };
+  }
+
+  /* ---------- ด่าน 3: รูปกระจาย ---------- */
+  function qExpand() {
+    const n = rnd(6, 0.3);
+    const ch = uniqueChoices(n, [() => mutate(n)]);
+    if (Math.random() < 0.5) {
+      return { q: `<span class="num">${fmt(n)}</span><br>เขียนในรูปกระจายได้อย่างไร?`, choices: ch.map(expand), answer: 0, oneCol: true, explain: `แยกตามค่าประจำหลัก: ${fmt(n)} = ${expand(n)}`, short: `${fmt(n)} = ${expand(n)}` };
+    }
+    return { q: `<span class="sm-num">${expand(n)}</span><br>เท่ากับจำนวนใด?`, choices: ch.map(fmt), answer: 0, explain: `นำค่าของแต่ละหลักมารวมกัน ได้ ${fmt(n)} (หลักที่ไม่มีให้เป็น 0)`, short: `${expand(n)} = ${fmt(n)}` };
+  }
+
+  /* ---------- ด่าน 4: เปรียบเทียบและเรียงลำดับ ---------- */
+  function qCompare() {
+    if (Math.random() < 0.65) {
+      const len = R(6, 7), a = rnd(len, 0.15); let b;
+      const r = Math.random();
+      if (r < 0.12) b = a;
+      else if (r < 0.3) b = rnd(len + (len === 7 ? -1 : 1), 0.15);
+      else { const s = String(a).split(''), i = R(0, s.length - 1); let v; do { v = R(i ? 0 : 1, 9); } while (String(v) === s[i]); s[i] = String(v); b = +s.join(''); }
+      const ans = a > b ? 0 : a < b ? 1 : 2;
+      const sa = String(a), sb = String(b); let why;
+      if (a === b) why = 'ทุกหลักเหมือนกัน จึงเท่ากัน';
+      else if (sa.length !== sb.length) why = `จำนวนที่มีหลักมากกว่าจะมากกว่า (${sa.length} หลัก กับ ${sb.length} หลัก)`;
+      else { const i = [...sa].findIndex((c, k) => c !== sb[k]); why = `เปรียบเทียบจากหลักซ้ายสุด ตัวแรกที่ต่างกันอยู่หลัก${PLACE[sa.length - 1 - i]}: ${sa[i]} ${sa[i] > sb[i] ? '>' : '<'} ${sb[i]}`; }
+      return { q: `เติมเครื่องหมายให้ถูกต้อง<div class="cmp"><span class="num">${fmt(a)}</span><span class="box">?</span><span class="num">${fmt(b)}</span></div>`, choices: ['&gt;', '&lt;', '='], answer: ans, keepOrder: true, sym: true, explain: why, short: `${fmt(a)} ${['>', '<', '='][ans]} ${fmt(b)}` };
+    }
+    const base = rnd(6, 0.1), nums = [base]; let g = 0;
+    while (nums.length < 4 && g++ < 50) { const m = mutate(base); if (m && String(m).length === 6 && !nums.includes(m)) nums.push(m); }
+    while (nums.length < 4) nums.push(base + nums.length * 1000);
+    const most = Math.random() < 0.5, target = most ? Math.max(...nums) : Math.min(...nums);
+    const order = KIT.shuffle(nums.slice()); const ch = [target, ...order.filter((x) => x !== target)];
+    const sorted = nums.slice().sort((x, y) => (most ? y - x : x - y)).map(fmt).join(most ? ' > ' : ' < ');
+    return { q: `จำนวนใด<b>${most ? 'มากที่สุด' : 'น้อยที่สุด'}</b>?`, choices: ch.map(fmt), answer: 0, explain: `เรียงลำดับ: ${sorted}`, short: `${most ? 'มากที่สุด' : 'น้อยที่สุด'} คือ ${fmt(target)}` };
+  }
+
+  /* ---------- ด่าน 5: ค่าประมาณ ---------- */
+  function qRound() {
+    const p = R(1, 5), unit = 10 ** p;
+    let n; do { n = rnd(R(6, 7), 0.15); } while (n % unit === 0);
+    const near = Math.round(n / unit) * unit, lo = Math.floor(n / unit) * unit, hi = lo + unit;
+    const ch = uniqueChoices(near, [() => (near === lo ? hi : lo), () => Math.round(n / (unit * 10)) * unit * 10, () => p > 1 ? Math.round(n / (unit / 10)) * (unit / 10) : null, () => near + unit * pick([-2, 2]), () => near - unit]);
+    const digit = Math.floor(n / (unit / 10)) % 10;
+    return { q: `<span class="num">${fmt(n)}</span><br>ค่าประมาณเป็น<b>จำนวนเต็ม${PLACE[p]}</b> คือข้อใด?`, choices: ch.map(fmt), answer: 0, explain: `${fmt(n)} อยู่ระหว่าง ${fmt(lo)} กับ ${fmt(hi)} · ดูหลัก${PLACE[p - 1]} คือ ${digit} ${digit >= 5 ? '(ตั้งแต่ 5 ขึ้นไป ปัดขึ้น)' : '(น้อยกว่า 5 ปัดลง)'} จึงได้ ${fmt(near)}`, short: `${fmt(n)} ≈ ${fmt(near)} (เต็ม${PLACE[p]})` };
+  }
+
+  const MODES = [
+    { id: 'place', icon: '🏠', name: 'หลักและค่าประจำหลัก', sub: 'เลขแต่ละตัวอยู่หลักอะไร มีค่าเท่าไร', gen: qPlace, lesson: 'จำนวนนับเรียงหลักจากขวาไปซ้าย: หน่วย สิบ ร้อย พัน หมื่น แสน ล้าน · <b>ค่าประจำหลัก</b> = ตัวเลข × ค่าของหลัก เช่น 5 ในหลักแสน มีค่า 500,000' },
+    { id: 'read', icon: '📖', name: 'อ่านและเขียนตัวเลข', sub: 'ตัวเลขฮินดูอารบิก ตัวเลขไทย ตัวหนังสือ', gen: qRead, lesson: 'อ่านจำนวนจากหลักซ้ายไปขวา หลักที่เป็น 0 ไม่ต้องอ่าน · หลักหน่วยเป็น 1 (และมีหลักอื่นอยู่หน้า) อ่านว่า "เอ็ด" · หลักสิบเป็น 2 อ่านว่า "ยี่สิบ"' },
+    { id: 'expand', icon: '🧱', name: 'รูปกระจาย', sub: 'แยกจำนวนตามค่าประจำหลัก', gen: qExpand, lesson: '<b>รูปกระจาย</b> คือ การเขียนจำนวนเป็นผลบวกของค่าประจำหลักแต่ละหลัก เช่น 352,406 = 300,000 + 50,000 + 2,000 + 400 + 6' },
+    { id: 'compare', icon: '⚖️', name: 'เปรียบเทียบและเรียงลำดับ', sub: 'ใช้ > < = และหามากสุด น้อยสุด', gen: qCompare, lesson: 'เปรียบเทียบจำนวน: ดูจำนวนหลักก่อน หลักมากกว่าจะมากกว่า · ถ้าจำนวนหลักเท่ากัน ให้ดูจากหลักซ้ายสุดทีละหลัก จนพบหลักที่ต่างกัน' },
+    { id: 'round', icon: '🎯', name: 'ค่าประมาณ', sub: 'ปัดเป็นจำนวนเต็มสิบ ร้อย พัน หมื่น แสน', gen: qRound, lesson: 'หาค่าประมาณเป็นจำนวนเต็มหลักใด ให้ดู<b>หลักถัดไปทางขวา</b> · ถ้าเป็น 5–9 ปัดขึ้น · ถ้าเป็น 0–4 ปัดลง' },
+  ];
+
+  function play(host, mode) {
+    const gens = mode ? [mode.gen] : MODES.map((m) => m.gen);
+    const count = mode ? 8 : 10, rounds = [];
+    for (let i = 0; i < count; i++) rounds.push(gens[mode ? 0 : i % gens.length]());
+    KIT.mcq(host, { rounds, count, lesson: mode ? mode.lesson : MODES.map((m) => '• ' + m.lesson).join('<br>'), okWord: pick(['ถูกต้อง!', 'เก่งมาก!', 'ยอดเยี่ยม!']) });
+    // ปุ่มเครื่องหมาย > < = ให้ตัวใหญ่
+    const fix = () => { const r = host.querySelector('.choices'); if (r && /^(&gt;|&lt;|=|>|<)$/.test(r.querySelector('.choice span:last-child').innerHTML)) r.classList.add('sym'); };
+    fix(); new MutationObserver(fix).observe(host, { childList: true });
+  }
+
+  function menu(host) {
+    host.innerHTML = `<section class="card"><h2 class="head" style="text-align:center">เลือกด่านที่อยากฝึก</h2>
+      <p style="text-align:center;margin:4px 0 16px">โจทย์สุ่มใหม่ทุกครั้ง ฝึกซ้ำได้ไม่ซ้ำเดิม</p>
+      <div class="menu">${MODES.map((m, i) => `<button class="mcard" data-i="${i}"><span class="mi">${m.icon}</span><b>ด่าน ${i + 1} ${m.name}</b><small>${m.sub} · 8 ข้อ</small></button>`).join('')}
+      <button class="mcard all" data-i="all"><span class="mi">🏆</span><span><b>ด่านท้าทาย รวมทุกเรื่อง</b><br><small>10 ข้อ คละทั้ง 5 ด่าน</small></span></button></div></section>`;
+    KIT.$$('.mcard', host).forEach((b) => (b.onclick = () => { KIT.sfx.tap(); KIT.resetScore(); play(host, b.dataset.i === 'all' ? null : MODES[+b.dataset.i]); }));
+  }
+
+  KIT.init({
+    title: 'นักผจญภัยจำนวนใหญ่', grade: 'ป.4', subject: 'คณิตศาสตร์', topic: 'จำนวนนับที่มากกว่า 100,000',
+    icon: '🔢🏔️', color: '#FF9F45', soft: '#FFE9D3',
+    howto: ['เลือกด่านที่อยากฝึก (มี 5 ด่าน + ด่านท้าทาย)', 'อ่านโจทย์ แล้วกดเลือกคำตอบที่ถูกต้อง', 'อ่านคำอธิบายหลังตอบทุกข้อ โจทย์สุ่มใหม่ทุกครั้งที่เล่น'],
+    start: menu,
+  });
+})();
+</script>
+</body>
+</html>
